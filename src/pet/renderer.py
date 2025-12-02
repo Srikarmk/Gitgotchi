@@ -1,11 +1,17 @@
 """ASCII art & terminal UI."""
+import sys
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
 from src.pet.states import PetForm, PetMood, PetStats
 
-console = Console()
+# Force UTF-8 encoding for Windows
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
+
+console = Console(force_terminal=True, legacy_windows=False)
 
 # ASCII art for each pet form
 PET_SPRITES = {
