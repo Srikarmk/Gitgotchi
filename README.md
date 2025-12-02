@@ -1,6 +1,6 @@
 # 🎃 GitGotchi - Your Friendly Dev Companion 👻
 
-A Stardew Valley-inspired terminal companion that lives in your git repository!
+A Stardew Valley X Halloween -inspired terminal companion that lives in your git repository!
 
 ## ✨ Features
 - Adorable pixel art companion that evolves based on your coding habits

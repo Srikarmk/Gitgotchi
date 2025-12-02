@@ -1,15 +1,15 @@
 Metadata-Version: 2.4
 Name: gitgotchi
-Version: 0.1.0
+Version: 0.1.1
 Summary: A Stardew Valley-inspired terminal companion for your git repository
 Home-page: https://github.com/yourusername/gitgotchi
 Author: GitGotchi Team
 Author-email: GitGotchi Team <gitgotchi@example.com>
 License: MIT
-Project-URL: Homepage, https://github.com/yourusername/gitgotchi
-Project-URL: Repository, https://github.com/yourusername/gitgotchi
-Project-URL: Issues, https://github.com/yourusername/gitgotchi/issues
-Project-URL: Documentation, https://github.com/yourusername/gitgotchi#readme
+Project-URL: Homepage, https://github.com/Srikarmk/gitgotchi
+Project-URL: Repository, https://github.com/Srikarmk/gitgotchi
+Project-URL: Issues, https://github.com/Srikarmk/gitgotchi/issues
+Project-URL: Documentation, https://github.com/Srikarmk/gitgotchi#readme
 Keywords: git,terminal,pet,companion,stardew-valley,ai,tamagotchi,devtools,hackathon,kiro
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Developers
@@ -40,7 +40,7 @@ Dynamic: requires-python
 
 # 🎃 GitGotchi - Your Friendly Dev Companion 👻
 
-A Stardew Valley-inspired terminal companion that lives in your git repository!
+A Stardew Valley X Halloween -inspired terminal companion that lives in your git repository!
 
 ## ✨ Features
 - Adorable pixel art companion that evolves based on your coding habits

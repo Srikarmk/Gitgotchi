@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitgotchi"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Stardew Valley-inspired terminal companion for your git repository"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -56,10 +56,10 @@ dev = [
 gitgotchi = "src.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/gitgotchi"
-Repository = "https://github.com/yourusername/gitgotchi"
-Issues = "https://github.com/yourusername/gitgotchi/issues"
-Documentation = "https://github.com/yourusername/gitgotchi#readme"
+Homepage = "https://github.com/Srikarmk/gitgotchi"
+Repository = "https://github.com/Srikarmk/gitgotchi"
+Issues = "https://github.com/Srikarmk/gitgotchi/issues"
+Documentation = "https://github.com/Srikarmk/gitgotchi#readme"
 
 [tool.black]
 line-length = 88
