@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitgotchi"
-version = "0.1.1"
-description = "A Stardew Valley-inspired terminal companion for your git repository"
+version = "0.1.2"
+description = "A Stardew Valley X Halloween -inspired terminal companion for your git repository"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "GitGotchi Team", email = "gitgotchi@example.com"}
+    {name = "M K Sai Srikar", email = "Srikarmks@gmail.com"}
 ]
 keywords = [
     "git",

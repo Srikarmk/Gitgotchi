@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="gitgotchi",
-    version="0.1.1",
+    version="0.1.2",
     author="GitGotchi Team",
     author_email="gitgotchi@example.com",
     description="A Stardew Valley-inspired terminal companion that lives in your git repository",

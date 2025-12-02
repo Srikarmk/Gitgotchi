@@ -1,10 +1,10 @@
 Metadata-Version: 2.4
 Name: gitgotchi
-Version: 0.1.1
-Summary: A Stardew Valley-inspired terminal companion for your git repository
+Version: 0.1.2
+Summary: A Stardew Valley X Halloween -inspired terminal companion for your git repository
 Home-page: https://github.com/yourusername/gitgotchi
 Author: GitGotchi Team
-Author-email: GitGotchi Team <gitgotchi@example.com>
+Author-email: M K Sai Srikar <Srikarmks@gmail.com>
 License: MIT
 Project-URL: Homepage, https://github.com/Srikarmk/gitgotchi
 Project-URL: Repository, https://github.com/Srikarmk/gitgotchi
