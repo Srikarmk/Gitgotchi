@@ -18,14 +18,17 @@ class PetState(Base):
     __tablename__ = "pet_state"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pet_name: Mapped[str] = mapped_column(String(100), default="Spirit")
     total_commits: Mapped[int] = mapped_column(Integer, default=0)
     lines_added: Mapped[int] = mapped_column(Integer, default=0)
     lines_deleted: Mapped[int] = mapped_column(Integer, default=0)
     merge_conflicts: Mapped[int] = mapped_column(Integer, default=0)
     reverts: Mapped[int] = mapped_column(Integer, default=0)
     quality_score: Mapped[float] = mapped_column(Float, default=50.0)
+    evolution_points: Mapped[int] = mapped_column(Integer, default=0)
+    friend_level: Mapped[float] = mapped_column(Float, default=1.0)
     last_fed: Mapped[datetime] = mapped_column(default=datetime.now)
-    current_mood: Mapped[str] = mapped_column(String(20), default="neutral")
+    current_mood: Mapped[str] = mapped_column(String(20), default="content")
     current_form: Mapped[str] = mapped_column(String(20), default="egg")
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(

@@ -51,12 +51,15 @@ class StateManager:
 
             # Convert to PetStats
             stats = PetStats()
+            stats.pet_name = pet_state.pet_name
             stats.total_commits = pet_state.total_commits
             stats.lines_added = pet_state.lines_added
             stats.lines_deleted = pet_state.lines_deleted
             stats.merge_conflicts = pet_state.merge_conflicts
             stats.reverts = pet_state.reverts
             stats.quality_score = pet_state.quality_score
+            stats.evolution_points = pet_state.evolution_points
+            stats.friend_level = pet_state.friend_level
             stats.last_fed = pet_state.last_fed
             stats.current_mood = PetMood(pet_state.current_mood)
             stats.current_form = PetForm(pet_state.current_form)
@@ -76,12 +79,15 @@ class StateManager:
                 pet_state = PetState()
                 session.add(pet_state)
 
+            pet_state.pet_name = stats.pet_name
             pet_state.total_commits = stats.total_commits
             pet_state.lines_added = stats.lines_added
             pet_state.lines_deleted = stats.lines_deleted
             pet_state.merge_conflicts = stats.merge_conflicts
             pet_state.reverts = stats.reverts
             pet_state.quality_score = stats.quality_score
+            pet_state.evolution_points = stats.evolution_points
+            pet_state.friend_level = stats.friend_level
             pet_state.last_fed = stats.last_fed
             pet_state.current_mood = stats.current_mood.value
             pet_state.current_form = stats.current_form.value

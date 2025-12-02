@@ -24,12 +24,20 @@ Integrate GitGotchi with git hooks to automatically update pet state on commits.
 - Generate story for significant events
 
 ## Acceptance Criteria
-- [ ] Hook installer creates post-commit hook
-- [ ] Hook calls GitGotchi with commit hash
-- [ ] Commit metadata parsed correctly
-- [ ] Pet state updates on commit
-- [ ] Uninstaller removes hooks cleanly
-- [ ] Works with existing git hooks
+- [x] Hook installer creates post-commit hook
+- [x] Hook calls GitGotchi with commit hash
+- [x] Commit metadata parsed correctly
+- [x] Pet state updates on commit
+- [x] Uninstaller removes hooks cleanly
+- [x] Works with existing git hooks
+
+## Implementation Notes
+- Hooks installed via `gitgotchi.py install`
+- Post-commit hook triggers on every commit
+- Parses commit stats using GitPython
+- Updates pet state and renders haunted terminal output
+- Windows UTF-8 encoding handled properly
+- Appends to existing hooks if present
 
 ## Technical Notes
 - Check for existing hooks before installing

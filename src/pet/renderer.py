@@ -72,26 +72,24 @@ PET_SPRITES = {
 """,
 }
 
-# Mood-based colors
+# Mood-based colors (Stardew Valley inspired pastels)
 MOOD_COLORS = {
-    PetMood.ECSTATIC: "bright_yellow",
-    PetMood.HAPPY: "green",
-    PetMood.NEUTRAL: "white",
-    PetMood.HUNGRY: "yellow",
-    PetMood.SICK: "magenta",
-    PetMood.DYING: "red",
-    PetMood.POSSESSED: "bright_magenta",
+    PetMood.JOYFUL: "bright_yellow",  # Gold sparkles
+    PetMood.HAPPY: "cyan",  # Sky blue
+    PetMood.CONTENT: "bright_white",  # Soft white
+    PetMood.HUNGRY: "yellow",  # Gentle yellow
+    PetMood.TIRED: "magenta",  # Lavender
+    PetMood.SLEEPING: "blue",  # Soft blue
 }
 
-# Mood messages
+# Mood messages (friendly and encouraging)
 MOOD_MESSAGES = {
-    PetMood.ECSTATIC: "✨ Your spectral companion radiates ethereal joy! ✨",
-    PetMood.HAPPY: "😊 Your ghost purrs with contentment",
-    PetMood.NEUTRAL: "👻 Your pet watches silently from the shadows",
-    PetMood.HUNGRY: "🍽️  Your ghost is fading... feed it with commits!",
-    PetMood.SICK: "🤢 Dark magic has weakened your pet...",
-    PetMood.DYING: "💀 The spirits grow restless... commit soon!",
-    PetMood.POSSESSED: "👿 CURSED CODE DETECTED! Your pet writhes in agony!",
+    PetMood.JOYFUL: "✨ Your friend is glowing with happiness! ✨",
+    PetMood.HAPPY: "💛 Your companion is content and cheerful!",
+    PetMood.CONTENT: "🌟 Your friend is peaceful and happy",
+    PetMood.HUNGRY: "🍂 Your friend misses you... time for a commit?",
+    PetMood.TIRED: "💤 Your companion is getting sleepy...",
+    PetMood.SLEEPING: "😴 Zzz... Your friend is dreaming of code...",
 }
 
 
@@ -149,14 +147,14 @@ def render_evolution(old_form: PetForm, new_form: PetForm) -> None:
         new_form: New pet form
     """
     console.print("\n")
-    console.print("⚡" * 20, style="bright_yellow")
+    console.print("✨" * 20, style="bright_yellow")
     console.print(
-        f"[bold bright_yellow]Something stirs in the darkness...[/bold bright_yellow]"
+        f"[bold bright_yellow]Something magical is happening! ✨[/bold bright_yellow]"
     )
     console.print(
-        f"[bold bright_cyan]Your {old_form.value} is evolving into a {new_form.value}![/bold bright_cyan]"
+        f"[bold bright_cyan]Your {old_form.value} is evolving into a {new_form.value}! 🎉[/bold bright_cyan]"
     )
-    console.print("⚡" * 20, style="bright_yellow")
+    console.print("✨" * 20, style="bright_yellow")
     console.print("\n")
 
 
@@ -172,19 +170,19 @@ def render_commit_response(
     """
     console.print("\n")
 
-    # Spooky commit message
+    # Friendly commit messages
     messages = [
-        "The spirits accept your offering...",
-        "Your ghost feeds on fresh commits...",
-        "The code flows through the ethereal plane...",
-        "Another soul added to the repository...",
-        "The haunting continues...",
+        "Your friend is happy! Great commit! ✨",
+        "Yay! Your companion grows stronger! 🌟",
+        "Another step forward together! 💛",
+        "Your friend appreciates your hard work! 🍂",
+        "Wonderful! Your bond deepens! ❤️",
     ]
 
     import random
 
     msg = random.choice(messages)
-    console.print(f"[dim]{msg}[/dim]")
+    console.print(f"[cyan]{msg}[/cyan]")
 
     # Show quick stats
     console.print(
@@ -196,15 +194,15 @@ def render_commit_response(
 
 
 def render_error(message: str) -> None:
-    """Render error with spooky flavor.
+    """Render error with friendly flavor.
 
     Args:
         message: Error message
     """
     console.print(
         Panel(
-            f"[bold red]👻 The spirits are restless...[/bold red]\n\n{message}",
-            border_style="red",
-            title="💀 ERROR",
+            f"[bold yellow]🌙 Oh no! Something went wrong...[/bold yellow]\n\n{message}",
+            border_style="yellow",
+            title="⚠️  Oops",
         )
     )
