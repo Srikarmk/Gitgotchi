@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitgotchi"
+version = "0.1.0"
+description = "A Stardew Valley-inspired terminal companion for your git repository"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "GitGotchi Team", email = "gitgotchi@example.com"}
+]
+keywords = [
+    "git",
+    "terminal",
+    "pet",
+    "companion",
+    "stardew-valley",
+    "ai",
+    "tamagotchi",
+    "devtools",
+    "hackathon",
+    "kiro"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Version Control :: Git",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "rich>=13.7.0",
+    "gitpython>=3.1.40",
+    "anthropic>=0.34.0",
+    "sqlalchemy>=2.0.36",
+    "typer>=0.9.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+gitgotchi = "src.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/gitgotchi"
+Repository = "https://github.com/yourusername/gitgotchi"
+Issues = "https://github.com/yourusername/gitgotchi/issues"
+Documentation = "https://github.com/yourusername/gitgotchi#readme"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

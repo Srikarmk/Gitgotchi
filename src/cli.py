@@ -11,6 +11,11 @@ app = typer.Typer(help="✨ GitGotchi - Your friendly dev companion")
 console = Console()
 
 
+def cli():
+    """Entry point for console script."""
+    app()
+
+
 @app.command()
 def status():
     """Show your companion's current status."""

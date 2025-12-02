@@ -1,0 +1,13 @@
+include README.md
+include LICENSE
+include requirements.txt
+include .env.example
+include gitgotchi_spec.md
+include KIRO_USAGE.md
+recursive-include assets *.txt *.json
+recursive-include .kiro *.md *.sh *.json
+recursive-include src/assets *
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.db

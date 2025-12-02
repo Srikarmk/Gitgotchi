@@ -1,0 +1,78 @@
+Metadata-Version: 2.4
+Name: gitgotchi
+Version: 0.1.0
+Summary: A Stardew Valley-inspired terminal companion for your git repository
+Home-page: https://github.com/yourusername/gitgotchi
+Author: GitGotchi Team
+Author-email: GitGotchi Team <gitgotchi@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/yourusername/gitgotchi
+Project-URL: Repository, https://github.com/yourusername/gitgotchi
+Project-URL: Issues, https://github.com/yourusername/gitgotchi/issues
+Project-URL: Documentation, https://github.com/yourusername/gitgotchi#readme
+Keywords: git,terminal,pet,companion,stardew-valley,ai,tamagotchi,devtools,hackathon,kiro
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Version Control :: Git
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: rich>=13.7.0
+Requires-Dist: gitpython>=3.1.40
+Requires-Dist: anthropic>=0.34.0
+Requires-Dist: sqlalchemy>=2.0.36
+Requires-Dist: typer>=0.9.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.3; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# 🎃 GitGotchi - Your Friendly Dev Companion 👻
+
+A Stardew Valley-inspired terminal companion that lives in your git repository!
+
+## ✨ Features
+- Adorable pixel art companion that evolves based on your coding habits
+- Warm, encouraging stories about your code history
+- Automatic feeding through git hooks
+- Friendship system inspired by Stardew Valley
+- Cozy terminal UI with sparkles and hearts
+- Fast evolution - see changes every 2-3 commits!
+
+## 🚀 Quick Start
+```bash
+pip install -r requirements.txt
+python gitgotchi.py install  # Install git hooks
+python gitgotchi.py status   # Meet your companion!
+```
+
+## 🎮 Commands
+- `gitgotchi status` - See your companion
+- `gitgotchi pet` - Give them affection
+- `gitgotchi story` - Hear a code story
+- `gitgotchi evolve` - Check evolution progress
+- `gitgotchi name <name>` - Give your companion a name
+
+## 🌟 Evolution Forms (Fast Track!)
+- 🥚 Egg (0-2 commits)
+- 👻 Ghost (3-5 commits)
+- 👼 Angel (6+ commits, high quality)
+- 😈 Demon (6+ commits, chaotic)
+- 🧟 Zombie (4+ reverts, needs coffee)
+- 🌙 Wraith (15+ commits, ultimate form)
+
+## 🎨 Theme
+GitGotchi is inspired by Stardew Valley's cozy, friendly aesthetic. Your companion is a warm, magical spirit - not scary! Think Junimos, sparkles, and autumn leaves.
+
+Built with ❤️ for Kiroween Hackathon 2024
