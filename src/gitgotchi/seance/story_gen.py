@@ -5,6 +5,8 @@ from typing import Dict, Optional
 
 from anthropic import Anthropic
 
+MODEL = "claude-opus-5-5"
+
 
 class StoryGenerator:
     """Generate warm, friendly stories about code history using Claude AI."""
@@ -41,6 +43,7 @@ Avoid:
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.client = Anthropic(api_key=self.api_key) if self.api_key else None
+        self.last_error: Optional[str] = None
 
     def generate_story(
         self, story_type: str, context: Dict, pet_form: str
@@ -61,16 +64,27 @@ Avoid:
         try:
             prompt = self._build_story_prompt(story_type, context, pet_form)
 
-            message = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=500,
+            message = self.client.beta.messages.create(
+                model=MODEL,
+                max_tokens=16000,
+                output_config={"effort": "low"},
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
                 system=self.SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             )
 
-            return message.content[0].text
+            if message.stop_reason == "refusal":
+                self.last_error = "the request was declined"
+                return self._get_fallback_story(story_type)
 
-        except Exception:
+            text = "".join(
+                block.text for block in message.content if block.type == "text"
+            ).strip()
+            return text or self._get_fallback_story(story_type)
+
+        except Exception as e:
+            self.last_error = str(e)
             return self._get_fallback_story(story_type)
 
     def get_daily_message(self, state: Dict) -> str:
@@ -122,6 +136,10 @@ Avoid:
         self, story_type: str, context: Dict, pet_form: str
     ) -> str:
         """Build prompt for Claude based on story type and context."""
+        recent = "\n".join(
+            f"  - {msg}" for msg in context.get("recent_commits", [])
+        ) or "  - (none yet)"
+
         prompts = {
             "milestone": f"""
 Tell a celebratory story about reaching a coding milestone.
@@ -130,6 +148,9 @@ Details:
 - Total commits: {context.get('total_commits', 0)}
 - Lines of code: {context.get('total_lines', 0)}
 - Time coding together: {context.get('days_together', 0)} days
+- Companion's current form: {pet_form}
+- Recent commit messages:
+{recent}
 
 Make it feel like a celebration of progress and friendship.
 End with encouragement for the journey ahead.

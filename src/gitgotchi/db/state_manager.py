@@ -1,7 +1,7 @@
 """State management for pet persistence."""
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Sequence
 
 from sqlalchemy.orm import Session
 
@@ -12,18 +12,25 @@ from gitgotchi.db.models import (
     get_engine,
     init_db,
 )
+from gitgotchi.paths import ignore_state_dir, require_repo, state_db_path
+from gitgotchi.pet.quality import score_commit, update_quality
 from gitgotchi.pet.states import PetForm, PetMood, PetStats
 
 
 class StateManager:
     """Manages pet state persistence and retrieval."""
 
-    def __init__(self, db_path: str = ".gitgotchi/state.db") -> None:
+    def __init__(self, db_path: Optional[str] = None) -> None:
         """Initialize state manager.
 
         Args:
-            db_path: Path to SQLite database file
+            db_path: Path to SQLite database file. Defaults to
+                .gitgotchi/state.db at the root of the current git repo.
         """
+        if db_path is None:
+            repo = require_repo()
+            ignore_state_dir(repo)
+            db_path = str(state_db_path(repo))
         self.db_path = db_path
         self._ensure_db_exists()
         self.engine = get_engine(db_path)
@@ -63,8 +70,10 @@ class StateManager:
             stats.last_fed = pet_state.last_fed
             stats.current_mood = PetMood(pet_state.current_mood)
             stats.current_form = PetForm(pet_state.current_form)
+            stats.created_at = pet_state.created_at
 
-            return stats
+        stats.update_mood()
+        return stats
 
     def save_pet_state(self, stats: PetStats) -> None:
         """Save pet state to database.
@@ -196,6 +205,27 @@ class StateManager:
             )
             return story.story_text if story else None
 
+    def has_commit(self, commit_hash: str) -> bool:
+        """Check whether a commit has already been processed."""
+        with Session(self.engine) as session:
+            return (
+                session.query(CommitHistory)
+                .filter_by(commit_hash=commit_hash)
+                .first()
+                is not None
+            )
+
+    def get_recent_commits(self, limit: int = 5) -> List[str]:
+        """Most recent tracked commit messages, newest first."""
+        with Session(self.engine) as session:
+            rows = (
+                session.query(CommitHistory.message)
+                .order_by(CommitHistory.timestamp.desc())
+                .limit(limit)
+                .all()
+            )
+            return [row.message for row in rows]
+
     def process_commit_event(
         self,
         commit_hash: str,
@@ -207,6 +237,7 @@ class StateManager:
         files_changed: int = 0,
         is_merge: bool = False,
         is_revert: bool = False,
+        files: Sequence[str] = (),
     ) -> PetStats:
         """Process a commit event and update pet state.
 
@@ -220,6 +251,7 @@ class StateManager:
             files_changed: Number of files changed
             is_merge: Whether this is a merge commit
             is_revert: Whether this is a revert commit
+            files: Paths touched by the commit
 
         Returns:
             Updated PetStats
@@ -238,24 +270,21 @@ class StateManager:
         if is_revert:
             stats.reverts += 1
 
+        # Merge commits just combine existing work, so they don't move quality
+        quality_impact = 0.0
+        if not is_merge:
+            commit_score = score_commit(
+                message, lines_added + lines_deleted, files, is_revert
+            )
+            new_quality = update_quality(stats.quality_score, commit_score)
+            quality_impact = new_quality - stats.quality_score
+            stats.quality_score = new_quality
+
         # Feed the pet (updates last_fed and mood)
         stats.feed()
 
         # Update form based on new stats
         stats.update_form()
-
-        # Calculate quality impact
-        quality_impact = 0.0
-        if is_revert:
-            quality_impact = -5.0
-        elif is_merge:
-            quality_impact = -2.0
-        else:
-            quality_impact = 1.0
-
-        stats.quality_score = max(
-            0.0, min(100.0, stats.quality_score + quality_impact)
-        )
 
         # Log commit
         self.log_commit(

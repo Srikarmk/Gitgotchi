@@ -40,8 +40,9 @@ class PetStats:
         self.current_mood: PetMood = PetMood.CONTENT
         self.current_form: PetForm = PetForm.EGG
         self.evolution_points: int = 0
-        self.friend_level: int = 1  # 1-10, Stardew Valley style
+        self.friend_level: float = 1.0  # 1-10, Stardew Valley style
         self.pet_name: str = "Spirit"
+        self.created_at: datetime = datetime.now()
 
     def update_mood(self) -> None:
         """Update pet mood based on current stats and time."""

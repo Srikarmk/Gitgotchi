@@ -1,8 +1,12 @@
 """Main CLI interface."""
+from datetime import datetime
+
 import typer
+from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
+from gitgotchi import __version__
 from gitgotchi.db.state_manager import StateManager
 from gitgotchi.hooks.installer import install_hooks, uninstall_hooks
 from gitgotchi.pet.renderer import render_error, render_pet
@@ -13,6 +17,7 @@ console = Console()
 
 def cli():
     """Entry point for console script."""
+    load_dotenv(find_dotenv(usecwd=True))
     app()
 
 
@@ -45,7 +50,7 @@ def uninstall():
     """Remove GitGotchi git hooks."""
     if uninstall_hooks():
         console.print(
-            "\n[yellow]👋 Git hooks removed. You can still feed manually with 'gitgotchi feed'.[/yellow]\n"
+            "\n[yellow]👋 Git hooks removed. Your companion will wait for you here.[/yellow]\n"
         )
     else:
         raise typer.Exit(1)
@@ -143,13 +148,11 @@ def story():
 
         generator = StoryGenerator()
 
-        # Generate milestone story
         context = {
             "total_commits": pet_stats.total_commits,
             "total_lines": pet_stats.lines_added + pet_stats.lines_deleted,
-            "days_together": (
-                pet_stats.last_fed - pet_stats.last_fed
-            ).days,  # Simplified
+            "days_together": (datetime.now() - pet_stats.created_at).days,
+            "recent_commits": state_manager.get_recent_commits(),
         }
 
         story_text = generator.generate_story(
@@ -164,6 +167,11 @@ def story():
                 padding=(1, 2),
             )
         )
+        if generator.last_error:
+            console.print(
+                f"[dim](Couldn't reach Claude, so here's a classic story: "
+                f"{generator.last_error})[/dim]"
+            )
 
     except Exception as e:
         render_error(f"Failed to generate story: {str(e)}")
@@ -174,7 +182,8 @@ def story():
 def version():
     """Show GitGotchi version."""
     console.print(
-        "GitGotchi v0.1.0 - Your friendly dev companion ✨", style="bold cyan"
+        f"GitGotchi v{__version__} - Your friendly dev companion ✨",
+        style="bold cyan",
     )
 
 

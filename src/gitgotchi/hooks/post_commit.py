@@ -1,22 +1,21 @@
 """Git hook handlers."""
 from datetime import datetime
-from pathlib import Path
-
-from git import Repo
 
 from gitgotchi.db.state_manager import StateManager
+from gitgotchi.paths import require_repo
 from gitgotchi.pet.renderer import render_commit_response, render_error, render_evolution
 
 
 def handle_post_commit() -> None:
     """Handle post-commit hook."""
     try:
-        # Get git repo
-        repo = Repo(".", search_parent_directories=True)
-        git_root = Path(repo.git_dir).parent
-
-        # Get latest commit
+        repo = require_repo()
         commit = repo.head.commit
+        state_manager = StateManager()
+
+        # Never count the same commit twice (e.g. the hook being re-run by hand)
+        if state_manager.has_commit(commit.hexsha):
+            return
 
         # Parse commit metadata
         commit_hash = commit.hexsha
@@ -25,18 +24,16 @@ def handle_post_commit() -> None:
         timestamp = datetime.fromtimestamp(commit.committed_date)
 
         # Calculate stats
-        stats = commit.stats.total
+        commit_stats = commit.stats
+        stats = commit_stats.total
         lines_added = stats.get("insertions", 0)
         lines_deleted = stats.get("deletions", 0)
         files_changed = stats.get("files", 0)
+        files = list(commit_stats.files)
 
         # Check for merge/revert
         is_merge = len(commit.parents) > 1
         is_revert = message.lower().startswith("revert")
-
-        # Initialize state manager
-        db_path = git_root / ".gitgotchi" / "state.db"
-        state_manager = StateManager(str(db_path))
 
         # Get old form for evolution check
         old_stats = state_manager.get_pet_state()
@@ -53,6 +50,7 @@ def handle_post_commit() -> None:
             files_changed=files_changed,
             is_merge=is_merge,
             is_revert=is_revert,
+            files=files,
         )
 
         # Check for evolution
