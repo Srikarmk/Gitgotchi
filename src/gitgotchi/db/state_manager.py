@@ -5,14 +5,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.db.models import (
+from gitgotchi.db.models import (
     CommitHistory,
     PetState,
     StoryMemory,
     get_engine,
     init_db,
 )
-from src.pet.states import PetForm, PetMood, PetStats
+from gitgotchi.pet.states import PetForm, PetMood, PetStats
 
 
 class StateManager:

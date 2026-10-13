@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.db.models import get_engine
+from gitgotchi.db.models import get_engine
 
 
 class MigrationManager:

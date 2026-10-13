@@ -3,9 +3,9 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from src.db.state_manager import StateManager
-from src.hooks.installer import install_hooks, uninstall_hooks
-from src.pet.renderer import render_error, render_pet
+from gitgotchi.db.state_manager import StateManager
+from gitgotchi.hooks.installer import install_hooks, uninstall_hooks
+from gitgotchi.pet.renderer import render_error, render_pet
 
 app = typer.Typer(help="✨ GitGotchi - Your friendly dev companion")
 console = Console()
@@ -136,7 +136,7 @@ def evolve():
 def story():
     """Hear a story about your code's history."""
     try:
-        from src.seance.story_gen import StoryGenerator
+        from gitgotchi.seance.story_gen import StoryGenerator
 
         state_manager = StateManager()
         pet_stats = state_manager.get_pet_state()

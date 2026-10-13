@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from src.pet.states import PetForm, PetMood, PetStats
+from gitgotchi.pet.states import PetForm, PetMood, PetStats
 
 # Force UTF-8 encoding for Windows
 if sys.platform == "win32":

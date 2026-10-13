@@ -4,8 +4,8 @@ from pathlib import Path
 
 from git import Repo
 
-from src.db.state_manager import StateManager
-from src.pet.renderer import render_commit_response, render_error, render_evolution
+from gitgotchi.db.state_manager import StateManager
+from gitgotchi.pet.renderer import render_commit_response, render_error, render_evolution
 
 
 def handle_post_commit() -> None:

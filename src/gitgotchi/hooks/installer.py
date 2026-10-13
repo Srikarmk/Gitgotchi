@@ -46,7 +46,7 @@ def install_hooks() -> bool:
     python_path = sys.executable.replace("\\", "/")
     gitgotchi_hook = f"""#!/bin/sh
 # GitGotchi post-commit hook
-"{python_path}" -m src.hooks.post_commit
+"{python_path}" -m gitgotchi.hooks.post_commit
 """
 
     # Check if hook already exists
