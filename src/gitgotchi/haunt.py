@@ -46,8 +46,9 @@ class Reaction:
 
 
 class Haunting:
-    def __init__(self, repo: Repo, state_manager: StateManager) -> None:
+    def __init__(self, repo: Repo, state_manager: StateManager, grace: float = HOOK_GRACE_SECONDS) -> None:
         self.repo = repo
+        self.grace = grace
         self.state = state_manager
         self.stats = state_manager.get_pet_state()
         self.head = self._head()
@@ -79,7 +80,7 @@ class Haunting:
         for commit, seen in self.pending:
             if self.state.has_commit(commit.hexsha):
                 self._react(commit, now)
-            elif now - seen > HOOK_GRACE_SECONDS:
+            elif now - seen > self.grace:
                 feed_commit(self.state, commit)
                 self._react(commit, now)
             else:
@@ -193,8 +194,8 @@ def _ago(moment: datetime) -> str:
     return f"{int(seconds // 86400)}d ago"
 
 
-def haunt(repo: Repo, state_manager: StateManager, fps: int = 12) -> None:
-    haunting = Haunting(repo, state_manager)
+def haunt(repo: Repo, state_manager: StateManager, fps: int = 12, grace: float = HOOK_GRACE_SECONDS) -> None:
+    haunting = Haunting(repo, state_manager, grace)
     with Live(console=console, refresh_per_second=fps, screen=True, transient=True) as live:
         try:
             while True:

@@ -338,6 +338,18 @@ def haunt(fps: int = typer.Option(12, help="Frames per second")):
 
 
 @app.command()
+def demo():
+    """Watch your companion haunt a throwaway repo while AI agents commit to it."""
+    from gitgotchi.demo import run_demo
+
+    if not console.is_terminal:
+        render_error("demo needs an interactive terminal.")
+        raise typer.Exit(1)
+    run_demo()
+    console.print(Text("🎃 That's GitGotchi. Run `gitgotchi install` in a real repo to adopt your own.", style=theme.ORANGE))
+
+
+@app.command()
 def version():
     """Show GitGotchi version."""
     console.print(
