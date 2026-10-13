@@ -1,6 +1,7 @@
 """Main CLI interface."""
 import random
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -273,6 +274,32 @@ def adopt(
         console.print(Text(f"   Spirits in this repo: {spirits}", style=theme.DIM))
     console.print()
     render_pet(stats)
+
+
+@app.command()
+def card(
+    output: Path = typer.Option(Path("gitgotchi-card.png"), "--output", "-o", help="Where to save the PNG"),
+    scale: int = typer.Option(5, help="Pixel size; 5 gives 1200x630"),
+):
+    """Save a shareable card of your companion as a PNG."""
+    from gitgotchi.paths import require_repo
+    from gitgotchi.render.card import make_card
+    from gitgotchi.render.scene import encode_png, upscale
+    from gitgotchi.render.terminal import graphics_protocol, inline_image
+
+    state_manager = load_state()
+    stats = state_manager.get_pet_state()
+    repo_name = Path(require_repo().working_tree_dir).name
+
+    image = make_card(stats, repo_name, state_manager.agent_counts())
+    output.write_bytes(encode_png(upscale(image, max(1, min(12, scale)))))
+
+    protocol = graphics_protocol()
+    if protocol and console.is_terminal:
+        console.file.write(inline_image(image, min(console.width - 2, 96), protocol))
+        console.file.flush()
+    console.print(Text(f"\n🖼️  Saved {output} ({image.shape[1] * scale}x{image.shape[0] * scale})", style=theme.ORANGE))
+    console.print(Text("Share it, and tag the spirits that wrote your code.\n", style=theme.DIM))
 
 
 @app.command()

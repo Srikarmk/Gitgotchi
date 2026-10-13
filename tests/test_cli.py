@@ -35,3 +35,16 @@ def test_name_and_pet(repo):
     stats = StateManager().get_pet_state()
     assert stats.pet_name == "Pumpkin"
     assert stats.friend_level == 1.5
+
+
+def test_card_writes_png(repo, tmp_path):
+    out = tmp_path / "card.png"
+    result = runner.invoke(app, ["card", "--output", str(out), "--scale", "2"])
+    assert result.exit_code == 0, result.output
+    assert out.read_bytes().startswith(b"\x89PNG")
+
+
+def test_adopt_on_empty_repo(repo):
+    result = runner.invoke(app, ["adopt"])
+    assert result.exit_code == 0
+    assert "No commits" in result.output

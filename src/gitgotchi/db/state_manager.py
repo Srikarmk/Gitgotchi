@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from gitgotchi.db.models import (
@@ -281,6 +282,17 @@ class StateManager:
         self.save_pet_state(stats)
         stats.update_mood()
         return Replay(stats=stats, count=len(rows), agents=agents, since=first)
+
+    def agent_counts(self) -> Counter:
+        """How many tracked commits each AI agent wrote."""
+        with Session(self.engine) as session:
+            rows = (
+                session.query(CommitHistory.agent, func.count())
+                .filter(CommitHistory.agent.isnot(None))
+                .group_by(CommitHistory.agent)
+                .all()
+            )
+            return Counter(dict(rows))
 
     def get_recent_events(self, limit: int = 6) -> List[CommitHistory]:
         """Most recent tracked commits, newest first."""

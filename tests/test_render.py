@@ -35,3 +35,19 @@ def test_pixel_art_width():
     lines = console.export_text().splitlines()
     assert len(lines) == 24
     assert max(len(line) for line in lines) == 64
+
+
+def test_card_renders_and_fits_agents():
+    from collections import Counter
+
+    from gitgotchi.pet.states import PetForm, PetStats
+    from gitgotchi.render.card import CARD_H, CARD_W, agent_line, make_card
+
+    stats = PetStats()
+    stats.pet_name = "AVeryLongCompanionName"
+    stats.current_form = PetForm.POLTERGEIST
+    card = make_card(stats, "my-repo", Counter({"Claude": 900, "Copilot": 300}))
+    assert card.shape == (CARD_H, CARD_W, 4)
+
+    assert agent_line({"Claude": 9}, 98) == "Claude 9"
+    assert agent_line({"Claude": 927, "Copilot": 305}, 98) == "Claude 927 +1"
