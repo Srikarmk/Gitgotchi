@@ -24,6 +24,3 @@ dist/
 .pytest_cache/
 .coverage
 htmlcov/
-
-# DO NOT IGNORE .kiro/
-# We need to commit this for the hackathon!

@@ -22,8 +22,7 @@ keywords = [
     "ai",
     "tamagotchi",
     "devtools",
-    "hackathon",
-    "kiro"
+    "halloween"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -1,7 +1,3 @@
-"""
-GitGotchi - A Stardew Valley-inspired terminal companion for your git repository.
-
-Built for Kiroween Hackathon 2025.
-"""
+"""GitGotchi - A Halloween-inspired terminal companion for your git repository."""
 
 __version__ = "0.2.0"

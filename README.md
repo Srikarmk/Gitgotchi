@@ -105,5 +105,3 @@ See [INSTALL.md](INSTALL.md) for more and [CHANGELOG.md](CHANGELOG.md) for relea
 ## License
 
 MIT - see [LICENSE](LICENSE).
-
-Built with ❤️ for the Kiroween Hackathon 2025
