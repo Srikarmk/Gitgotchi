@@ -451,7 +451,7 @@ class Wraith(Form):
         return np.maximum(d, -opening)
 
     def paint(self, p, n, t):
-        x, y, z = p[:, 0], p[:, 1], p[:, 2]
+        x, y = p[:, 0], p[:, 1]
         out = np.zeros(len(p), dtype=int)
         out[y < -0.3] = 3
         inside = ellipsoid(p, (0, 0.36, -0.42), (0.29, 0.32, 0.22)) < 0.02

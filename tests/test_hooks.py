@@ -3,7 +3,6 @@ import stat
 import subprocess
 from pathlib import Path
 
-import pytest
 
 from gitgotchi.db.state_manager import StateManager
 from gitgotchi.hooks.installer import (

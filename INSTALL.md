@@ -25,10 +25,14 @@ cd your-project
 
 ```bash
 gitgotchi install
+gitgotchi adopt    # optional: raise it on the history you already have
 gitgotchi status
 ```
 
-3. **Make commits and watch your companion grow!**
+Want to see it first? `gitgotchi demo` runs in a throwaway repo.
+
+3. **Make commits and watch your companion grow!** Keep `gitgotchi haunt` open in a split to see
+   it react live.
 
 ```bash
 git add .
@@ -114,8 +118,8 @@ deactivate
 Bump `__version__` in `src/gitgotchi/__init__.py`, add a CHANGELOG entry, then tag:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 The Publish workflow builds the package and uploads it to PyPI.

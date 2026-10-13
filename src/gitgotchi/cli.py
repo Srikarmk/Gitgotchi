@@ -1,6 +1,5 @@
 """Main CLI interface."""
 import random
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -279,7 +278,7 @@ def adopt(
     console.print(
         Text.assemble(
             ("\n🎃 Replayed ", theme.DIM),
-            (f"{replay.count:,} commits", f"bold {theme.ORANGE}"),
+            (f"{replay.count:,} commit{'s' if replay.count != 1 else ''}", f"bold {theme.ORANGE}"),
             (f" going back to {since}.\n", theme.DIM),
             (f"   {stats.pet_name} grew into a ", theme.DIM),
             (f"{info.title} {info.icon}", f"bold {info.color}"),

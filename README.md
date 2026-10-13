@@ -1,62 +1,101 @@
-# 🎃 GitGotchi - Your Friendly Dev Companion 👻
+# 🎃 GitGotchi
 
 [![PyPI](https://img.shields.io/pypi/v/gitgotchi)](https://pypi.org/project/gitgotchi/)
 [![CI](https://github.com/Srikarmk/Gitgotchi/actions/workflows/ci.yml/badge.svg)](https://github.com/Srikarmk/Gitgotchi/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/gitgotchi)](https://pypi.org/project/gitgotchi/)
 
-A Stardew Valley X Halloween-inspired terminal companion that lives in your git repository!
+**Your terminal is haunted now.** These days AI agents write a lot of the commits, and GitGotchi is the
+little spirit that lives in your repo and watches them land. Feed it commits, keep it company while
+your agent works, and see what it grows into.
 
-## ✨ Features
+![All seven forms](https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/forms.png)
 
-- Adorable ASCII companion that evolves based on your coding habits
-- Fed automatically through a git post-commit hook
-- Warm, AI-generated stories about your code history (optional)
-- Friendship system inspired by Stardew Valley
-- Fast evolution - see changes every 2-3 commits!
+Every form is a real 3D model, raymarched and cel-shaded into pixel art right in your terminal.
 
-## 🚀 Installation
+## 🚀 Try it
 
 ```bash
 pip install gitgotchi
+gitgotchi demo
 ```
 
-Requires Python 3.10+ and git. [pipx](https://pipx.pypa.io) works too: `pipx install gitgotchi`.
+`demo` opens a throwaway repo where you, Claude and Copilot take turns committing, so you can watch a
+pumpkin grow into a Poltergeist in about thirty seconds.
 
-## 🌱 Quick Start
+## 🌱 Haunt your own repo
 
 ```bash
 cd your-project
-gitgotchi install   # add the post-commit hook
-gitgotchi status    # meet your companion!
+gitgotchi install   # every commit now feeds your companion
+gitgotchi adopt     # raise it on the history you already have
+gitgotchi haunt     # open the live pane
 ```
 
-Then just commit as usual - your companion eats every commit.
+Keep `gitgotchi haunt` open in a split next to the terminal where you or your agent are working. Every
+commit gets a reaction, agent commits glitch the screen, and evolutions play out live.
 
-## 🎮 Commands
+![The haunt pane reacting to commits](https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/haunt.gif)
+
+## 👾 Possession
+
+GitGotchi spots commits written by AI agents (Claude, Copilot, Codex, Cursor, Devin, Aider, Gemini,
+Windsurf, Cline, Amp) from their `Co-Authored-By` trailers, "Generated with" footers and bot accounts.
+They feed your companion like any other commit, and they also fill its **possession** meter. Once agents
+have written at least half of 6+ commits, your companion becomes a **Poltergeist**.
+
+When git isn't attached to a terminal (an agent running `git commit`, for example), the hook prints a
+single line instead of the full pet, so it doesn't flood the agent's context.
+
+## 🖼️ Share it
+
+```bash
+gitgotchi card
+```
+
+Saves a 1200×630 card, sized for LinkedIn and other link previews:
+
+![A sample card](https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/card.png)
+
+## 🔮 Séance
+
+```bash
+gitgotchi seance
+```
+
+Your companion digs through the history for its ghosts: the oldest TODO still in the code, the file
+nobody has opened in ages, the biggest deletion, commits made between midnight and 4am, and the first
+commit an AI agent wrote. Then it tells you a story about them. Set `ANTHROPIC_API_KEY` (or put it in a
+`.env` file) to have Claude tell it; otherwise your companion tells it in its own words.
+
+## 🎮 All commands
 
 | Command | What it does |
 | --- | --- |
-| `gitgotchi status` | See your companion and their stats |
-| `gitgotchi pet` | Give them affection (boosts mood and friendship) |
-| `gitgotchi story` | Hear a story about your code |
-| `gitgotchi evolve` | Check evolution progress and requirements |
-| `gitgotchi name <name>` | Give your companion a name |
-| `gitgotchi install` | Install the git hook |
-| `gitgotchi uninstall` | Remove the git hook (other hooks are left alone) |
-| `gitgotchi version` | Show the installed version |
+| `gitgotchi demo` | Watch a throwaway repo get haunted |
+| `gitgotchi install` | Add the post-commit hook (other hooks are kept) |
+| `gitgotchi adopt` | Replay existing history (`--reset` to start over) |
+| `gitgotchi haunt` | Live pane that reacts to every commit |
+| `gitgotchi status` | Your companion and its stats |
+| `gitgotchi seance` | Ghost stories from your repo's history |
+| `gitgotchi card` | Save a shareable PNG |
+| `gitgotchi evolve` | Evolution paths and progress |
+| `gitgotchi pet` | Give it some affection |
+| `gitgotchi name <name>` | Name your companion |
+| `gitgotchi uninstall` | Remove the hook |
 
-## 🌟 Evolution Forms
+## 🌕 Evolution
 
-- 🥚 **Egg** (0-2 commits) - starting form
-- 👻 **Ghost** (3-5 commits) - default friendly spirit
-- 👼 **Angel** (6+ commits, quality > 70) - high quality path
-- 😈 **Demon** (6+ commits, quality < 30) - chaotic but playful path
-- 🧟 **Zombie** (4+ reverts) - needs coffee
-- 🌙 **Wraith** (15+ commits) - ultimate ethereal form
+| Form | How to get there |
+| --- | --- |
+| 🎃 **Pumpkin** | Where everyone starts |
+| 👻 **Ghost** | 3 commits |
+| 😇 **Angel** | 6+ commits with quality above 70 |
+| 😈 **Demon** | 6+ commits with quality below 30 |
+| 👾 **Poltergeist** | 6+ commits, at least half by AI agents |
+| 🧟 **Zombie** | 4+ reverts |
+| 🌙 **Wraith** | 15+ commits |
 
-## 📈 Commit Quality
-
-Every commit gets a score, and your companion's quality score drifts toward it:
+Quality drifts toward the score of each commit:
 
 | Factor | Points |
 | --- | --- |
@@ -68,28 +107,18 @@ Every commit gets a score, and your companion's quality score drifts toward it:
 | Huge commit (>500 lines) | -15 |
 | Revert | -10 |
 
-Merge commits don't affect quality.
+Go a day without committing and your companion gets hungry; after a week it goes dormant.
 
-## 📖 Stories (optional)
+## 🖥️ Terminals
 
-`gitgotchi story` works out of the box with built-in stories. To get stories written by Claude
-from your actual commit history, set an Anthropic API key:
-
-```bash
-export ANTHROPIC_API_KEY='your-key-here'
-# or put it in a .env file in your project
-echo "ANTHROPIC_API_KEY=your-key-here" >> .env
-```
+GitGotchi draws with true-color half-block characters, so it works in practically every modern terminal,
+including VS Code, iTerm2, Kitty, WezTerm, Ghostty, Windows Terminal and macOS Terminal. `gitgotchi card`
+also shows the image inline in terminals that support it. Set `GITGOTCHI_GRAPHICS=blocks` to turn that off.
 
 ## 🗂️ Where state lives
 
 Your companion is stored in `.gitgotchi/state.db` at the root of the repository. GitGotchi adds
 `.gitgotchi/` to `.git/info/exclude`, so it never shows up in `git status` and is never committed.
-
-## 🎨 Theme
-
-GitGotchi is inspired by Stardew Valley's cozy, friendly aesthetic. Your companion is a warm,
-magical spirit - not scary! Think Junimos, sparkles, and autumn leaves.
 
 ## 🛠️ Development
 
@@ -98,6 +127,7 @@ git clone https://github.com/Srikarmk/Gitgotchi.git
 cd Gitgotchi
 pip install -e ".[dev]"
 pytest
+python scripts/render_assets.py   # regenerate the images in docs/
 ```
 
 See [INSTALL.md](INSTALL.md) for more and [CHANGELOG.md](CHANGELOG.md) for release notes.
