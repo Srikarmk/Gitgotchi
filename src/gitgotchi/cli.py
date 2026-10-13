@@ -212,6 +212,24 @@ def story():
 
 
 @app.command()
+def haunt(fps: int = typer.Option(12, help="Frames per second")):
+    """Open a live pane where your companion reacts to every commit.
+
+    Keep it next to the terminal where you (or your AI agent) are working.
+    """
+    from gitgotchi.haunt import haunt as run_haunt
+    from gitgotchi.paths import require_repo
+
+    if not console.is_terminal:
+        render_error("haunt needs an interactive terminal.")
+        raise typer.Exit(1)
+    state_manager = load_state()
+    run_haunt(require_repo(), state_manager, fps=max(1, min(30, fps)))
+    pet_stats = state_manager.get_pet_state()
+    console.print(Text(f"🕯️  {pet_stats.pet_name} drifts back into the repo. See you soon.", style=theme.PURPLE))
+
+
+@app.command()
 def version():
     """Show GitGotchi version."""
     console.print(

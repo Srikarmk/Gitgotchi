@@ -220,6 +220,16 @@ class StateManager:
                 is not None
             )
 
+    def get_recent_events(self, limit: int = 6) -> List[CommitHistory]:
+        """Most recent tracked commits, newest first."""
+        with Session(self.engine, expire_on_commit=False) as session:
+            return (
+                session.query(CommitHistory)
+                .order_by(CommitHistory.processed_at.desc(), CommitHistory.id.desc())
+                .limit(limit)
+                .all()
+            )
+
     def get_recent_commits(self, limit: int = 5) -> List[str]:
         """Most recent tracked commit messages, newest first."""
         with Session(self.engine) as session:
