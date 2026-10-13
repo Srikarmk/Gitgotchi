@@ -1,67 +1,48 @@
 # GitGotchi Installation Guide
 
-## Quick Install (Recommended)
-
-### From Source (Development)
+## Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/gitgotchi.git
-cd gitgotchi
-
-# Install in development mode
-pip install -e .
-
-# Verify installation
+pip install gitgotchi
 gitgotchi --help
 ```
 
-### From PyPI (When Published)
+Or, to keep it isolated from your other Python packages:
 
 ```bash
-# Install from PyPI
-pip install gitgotchi
-
-# Verify installation
-gitgotchi --help
+pipx install gitgotchi
 ```
 
 ## Setup
 
-1. **Get your Anthropic API key** (optional, for story generation):
-   - Visit [Anthropic Console](https://console.anthropic.com)
-   - Sign up for free credits
-   - Copy your API key
-
-2. **Set environment variable**:
-
-```bash
-# Option 1: Export (temporary)
-export ANTHROPIC_API_KEY='your-key-here'
-
-# Option 2: Create .env file (recommended)
-echo "ANTHROPIC_API_KEY=your-key-here" > .env
-```
-
-3. **Navigate to any git repository**:
+1. **Go to any git repository**:
 
 ```bash
 cd your-project
 ```
 
-4. **Install hooks and meet your companion**:
+2. **Install the hook and meet your companion**:
 
 ```bash
 gitgotchi install
 gitgotchi status
 ```
 
-5. **Make commits and watch your companion grow!**
+3. **Make commits and watch your companion grow!**
 
 ```bash
 git add .
 git commit -m "feat: add cool feature"
 gitgotchi status  # Your companion just got fed! 🌟
+```
+
+4. **Optional: AI stories.** Get an API key from the [Anthropic Console](https://console.anthropic.com)
+   and set it:
+
+```bash
+export ANTHROPIC_API_KEY='your-key-here'
+# or
+echo "ANTHROPIC_API_KEY=your-key-here" >> .env
 ```
 
 ## Requirements
@@ -74,84 +55,76 @@ gitgotchi status  # Your companion just got fed! 🌟
 
 ### "Command not found: gitgotchi"
 
-**Solution**: Make sure the package is installed and your PATH includes Python scripts:
+Make sure the package is installed and your Python scripts directory is on your PATH:
 
 ```bash
-# Check if installed
-pip list | grep gitgotchi
-
-# Reinstall if needed
-pip install -e . --force-reinstall
+pip show gitgotchi
 ```
 
-### "No module named 'src'"
+`pipx install gitgotchi` takes care of PATH for you.
 
-**Solution**: Install in development mode from the project root:
+### "No git repository found"
 
-```bash
-cd gitgotchi
-pip install -e .
-```
-
-### "Not a git repository"
-
-**Solution**: Initialize git first:
+GitGotchi lives inside a git repository. Initialize one first:
 
 ```bash
 git init
-git config user.name "Your Name"
-git config user.email "your.email@example.com"
 ```
 
-## Building from Source
+### My companion stopped eating after I recreated my virtualenv
 
-To build the package for distribution:
+The hook remembers which Python it was installed with. Re-run `gitgotchi install` from the new
+environment and it will update the hook in place.
+
+### Upgrading from 0.1.x
+
+0.1.x installed its code as a package named `src`, which broke the hook in projects that have
+their own `src/` package. After upgrading, run `gitgotchi install` once in each repository to
+replace the old hook. Your companion's state is kept.
+
+## Development
 
 ```bash
-# Install build tools
-pip install build twine
+git clone https://github.com/Srikarmk/Gitgotchi.git
+cd Gitgotchi
+pip install -e ".[dev]"
+pytest
+```
 
-# Build the package
+### Building
+
+```bash
 python -m build
-
-# This creates:
-# dist/gitgotchi-0.1.0.tar.gz (source)
-# dist/gitgotchi-0.1.0-py3-none-any.whl (wheel)
+# dist/gitgotchi-<version>.tar.gz
+# dist/gitgotchi-<version>-py3-none-any.whl
 ```
 
-## Testing the Build
+### Testing the build in a clean environment
 
 ```bash
-# Create a test virtual environment
-python -m venv test_env
-source test_env/bin/activate  # On Windows: test_env\Scripts\activate
-
-# Install from local build
-pip install dist/gitgotchi-0.1.0-py3-none-any.whl
-
-# Test it works
-gitgotchi status
-
-# Clean up
+python -m venv /tmp/gg-test
+source /tmp/gg-test/bin/activate  # On Windows: \tmp\gg-test\Scripts\activate
+pip install dist/gitgotchi-*.whl
+gitgotchi version
 deactivate
-rm -rf test_env
 ```
+
+### Releasing
+
+Bump `__version__` in `src/gitgotchi/__init__.py`, add a CHANGELOG entry, then tag:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The Publish workflow builds the package and uploads it to PyPI.
 
 ## Uninstallation
 
 ```bash
-# Remove git hooks first
-gitgotchi uninstall
-
-# Uninstall package
+gitgotchi uninstall   # in each repo
 pip uninstall gitgotchi
 ```
-
-## Next Steps
-
-Once installed, check out:
-- [README.md](README.md) - Full documentation
-- [KIRO_USAGE.md](KIRO_USAGE.md) - How Kiro was used to build this
-- [gitgotchi_spec.md](gitgotchi_spec.md) - Complete specification
 
 Enjoy your new companion! 👻✨

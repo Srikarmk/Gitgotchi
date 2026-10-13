@@ -201,4 +201,4 @@ The result is a delightful, functional companion that makes coding more fun and 
 
 ---
 
-**Built with ❤️ using Kiro AI for Kiroween Hackathon 2024**
+**Built with ❤️ using Kiro AI for Kiroween Hackathon 2025**
