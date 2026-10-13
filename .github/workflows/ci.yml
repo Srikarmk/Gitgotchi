@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.13"
+          - os: windows-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      # Test the built wheel, not the source tree, so packaging mistakes fail CI
+      - name: Install wheel
+        shell: bash
+        run: pip install dist/*.whl pytest
+
+      - name: Test
+        run: pytest -q
+
+      - name: Smoke test in a fresh repo
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/demo" && cd "$RUNNER_TEMP/demo"
+          git init -q
+          git config user.name ci && git config user.email ci@example.com
+          gitgotchi install
+          echo boo > ghost.txt && git add . && git commit -q -m "feat: summon a ghost"
+          gitgotchi status
+          gitgotchi status | grep -q "Commits: 1"
+          test -z "$(git status --porcelain)"
