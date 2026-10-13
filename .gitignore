@@ -3,9 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+.venv/
 .env
 
-# Database
+# Build
+build/
+dist/
+*.egg-info/
+
+# GitGotchi state
+.gitgotchi/
 *.db
 *.sqlite
 
