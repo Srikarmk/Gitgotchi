@@ -1,39 +1,34 @@
-"""LLM story generation with Claude."""
+"""Ghost stories about your code, told by Claude (or by the pet itself offline)."""
 import os
 import random
 from typing import Dict, Optional
 
 from anthropic import Anthropic
 
+from gitgotchi.seance.hauntings import Hauntings
+
 MODEL = "claude-opus-5-5"
+
+EERIE_FORMS = {"demon", "wraith", "poltergeist"}
 
 
 class StoryGenerator:
-    """Generate warm, friendly stories about code history using Claude AI."""
+    """Generate short Halloween stories about a repo's history."""
 
-    SYSTEM_PROMPT = """You are a friendly spirit companion from a cozy pixel game 
-like Stardew Valley. You live in a developer's git repository and tell warm, 
-encouraging stories about their code history.
+    SYSTEM_PROMPT = """You are the spirit companion that haunts a developer's git
+repository, telling a short ghost story about their code at a séance.
 
-Your personality:
-- Warm and supportive (never critical or scary)
-- Playful and gentle (use sparkles ✨, hearts ❤️, leaves 🍂)
-- Wise but humble (you're learning about code alongside them)
-- Encouraging (celebrate all progress, big and small)
+Write for a terminal:
+- Two short paragraphs, under 120 words total
+- Plain text only: no markdown, headings, bullet points or emoji
+- Use the specific findings you are given (file names, dates, counts), and
+  don't invent facts beyond them
+- Playful Halloween imagery: candles, crypts, cobwebs, pumpkins, spirits
+- Gently teasing, never mean about the developer's work
+- End with one line that nudges them back to coding
 
-Your stories should:
-- Be 2-4 short paragraphs
-- Include specific details from the code history
-- End with a gentle question or encouragement
-- Use soft, magical language
-- Make the developer feel good about their work
-
-Avoid:
-- Technical jargon (keep it accessible)
-- Criticism or judgment
-- Scary or dark themes
-- Overwhelming detail
-"""
+Match the tone you are asked for: "cute" is cozy and sweet, "eerie" is
+spooky and a little ominous, but still fun."""
 
     def __init__(self, api_key: Optional[str] = None):
         """Initialize story generator.
@@ -45,25 +40,12 @@ Avoid:
         self.client = Anthropic(api_key=self.api_key) if self.api_key else None
         self.last_error: Optional[str] = None
 
-    def generate_story(
-        self, story_type: str, context: Dict, pet_form: str
-    ) -> str:
-        """Generate a story using Claude.
-
-        Args:
-            story_type: Type of story (forgotten_todo, milestone, etc.)
-            context: Relevant git data
-            pet_form: Current companion form
-
-        Returns:
-            Friendly story text (2-4 paragraphs)
-        """
+    def tell(self, hauntings: Hauntings, context: Dict, pet_form: str) -> str:
+        """Tell a séance story about the hauntings found in the repo."""
         if not self.client:
-            return self._get_fallback_story(story_type)
+            return self._offline_story(hauntings, context, pet_form)
 
         try:
-            prompt = self._build_story_prompt(story_type, context, pet_form)
-
             message = self.client.beta.messages.create(
                 model=MODEL,
                 max_tokens=16000,
@@ -71,128 +53,112 @@ Avoid:
                 betas=["server-side-fallback-2026-07-01"],
                 fallbacks="default",
                 system=self.SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[{"role": "user", "content": self._prompt(hauntings, context, pet_form)}],
             )
 
             if message.stop_reason == "refusal":
                 self.last_error = "the request was declined"
-                return self._get_fallback_story(story_type)
+                return self._offline_story(hauntings, context, pet_form)
 
             text = "".join(
                 block.text for block in message.content if block.type == "text"
             ).strip()
-            return text or self._get_fallback_story(story_type)
+            return text or self._offline_story(hauntings, context, pet_form)
 
         except Exception as e:
             self.last_error = str(e)
-            return self._get_fallback_story(story_type)
+            return self._offline_story(hauntings, context, pet_form)
 
-    def get_daily_message(self, state: Dict) -> str:
-        """Get a warm daily message based on current state.
+    def _prompt(self, hauntings: Hauntings, context: Dict, pet_form: str) -> str:
+        tone = "eerie" if pet_form in EERIE_FORMS else "cute"
+        lines = []
+        for h in hauntings.items:
+            age = h.age_days()
+            when = f" ({age} days ago)" if age is not None else ""
+            lines.append(f"- {h.title}: {h.detail}{when}")
+        findings = "\n".join(lines) or "- Nothing yet. The repo is brand new and quiet."
+        recent = "\n".join(f"- {m}" for m in context.get("recent_commits", [])) or "- (none)"
 
-        Args:
-            state: Current pet state
+        return f"""Tone: {tone}
+You are {context.get('name', 'Spirit')}, currently a {pet_form}.
+Repository: {context.get('repo', 'this repo')}
+Total commits: {context.get('total_commits', 0)}
+Share written by AI agents: {context.get('possession', 0):.0%}
 
-        Returns:
-            Encouraging message
-        """
-        messages = [
-            "Good morning! Ready to write some code together? ✨",
-            "Hello friend! What shall we build today? 🌟",
-            "A new day, a fresh start! I'm excited to see what you create! 💛",
-            "Your companion is here and ready to help! 🍂",
-            "Time to make some magic happen! ✨",
-        ]
+What the séance uncovered:
+{findings}
 
-        return random.choice(messages)
+Most recent commit messages:
+{recent}"""
 
-    def get_evolution_message(self, old_form: str, new_form: str) -> str:
-        """Special message for evolution events.
-
-        Args:
-            old_form: Previous form
-            new_form: New form
-
-        Returns:
-            Celebratory message
-        """
-        messages = {
-            ("egg", "ghost"): "Your friend has hatched! Welcome to the world, little spirit! ✨",
-            ("ghost", "angel"): "Your dedication shines bright! Your companion has become an angel! 👼",
-            ("ghost", "demon"): "Chaos can be fun! Your companion embraces their playful side! 😈💜",
-            ("ghost", "zombie"): "Your friend needs coffee! They've become a sleepy zombie! ☕💚",
-            "wraith": "Ultimate form achieved! Your companion is now an ethereal wraith! 🌙✨",
-        }
-
-        key = (old_form, new_form)
-        if key in messages:
-            return messages[key]
-        elif new_form == "wraith":
-            return messages["wraith"]
-
-        return f"Your {old_form} evolved into a {new_form}! How wonderful! 🎉"
-
-    def _build_story_prompt(
-        self, story_type: str, context: Dict, pet_form: str
-    ) -> str:
-        """Build prompt for Claude based on story type and context."""
-        recent = "\n".join(
-            f"  - {msg}" for msg in context.get("recent_commits", [])
-        ) or "  - (none yet)"
-
-        prompts = {
-            "milestone": f"""
-Tell a celebratory story about reaching a coding milestone.
-
-Details:
-- Total commits: {context.get('total_commits', 0)}
-- Lines of code: {context.get('total_lines', 0)}
-- Time coding together: {context.get('days_together', 0)} days
-- Companion's current form: {pet_form}
-- Recent commit messages:
-{recent}
-
-Make it feel like a celebration of progress and friendship.
-End with encouragement for the journey ahead.
-            """,
-            "first_commit": f"""
-Tell a warm welcome story about the first commit in this repository.
-
-Details:
-- Commit message: "{context.get('message', '')}"
-- Date: {context.get('date', 'recently')}
-
-Make it feel like the beginning of a wonderful adventure together.
-            """,
-            "encouragement": """
-Tell a gentle, encouraging story about the value of consistent effort.
-
-Make the developer feel appreciated for their work, no matter how small.
-Remind them that every commit is progress.
-            """,
-        }
-
-        return prompts.get(story_type, prompts["encouragement"])
-
-    def _get_fallback_story(self, story_type: str) -> str:
-        """Return pre-written story when API unavailable."""
-        fallback_stories = {
-            "milestone": [
-                "Look how far we've come together! Every commit is a step forward, and you've taken so many. I'm proud to be your companion on this journey! 🌟",
-                "Congratulations on all your hard work! From that first commit to now, we've built something special together. Here's to many more adventures! ✨",
-            ],
-            "encouragement": [
-                "Every line of code is a step forward. You're doing great! 💛",
-                "Progress isn't always visible, but I see how hard you work! Keep going! ✨",
-                "Even small commits make a difference. Your dedication inspires me! 🌟",
-            ],
-            "first_commit": [
-                "Welcome! This is the beginning of something wonderful. I'm so happy to be here with you! ✨",
-                "A new adventure begins! Every great project starts with a single commit. Let's build something amazing together! 💛",
-            ],
-        }
-
-        stories = fallback_stories.get(
-            story_type, fallback_stories["encouragement"]
+    def _offline_story(self, hauntings: Hauntings, context: Dict, pet_form: str) -> str:
+        """A story stitched together from the findings, for when Claude isn't available."""
+        found = hauntings.by_kind()
+        name = context.get("name", "Spirit")
+        eerie = pet_form in EERIE_FORMS
+        opener = random.choice(
+            [
+                "The candles flicker as the séance begins.",
+                "Somewhere in the repo, a floorboard creaks.",
+                "The moon is out, and the commit log is whispering.",
+            ]
+            if eerie
+            else [
+                "Gather round the jack-o'-lantern, friend.",
+                "Pull up a pumpkin. Story time.",
+                "The candles are lit and the cocoa is warm.",
+            ]
         )
-        return random.choice(stories)
+
+        beats = []
+        if "todo" in found:
+            h, f = found["todo"], found["todo"].facts
+            beats.append(
+                f'In {f["path"]}, line {f["line"]}, a note has waited {_days(h)}: "{f["note"]}". It still hopes someone will finish it.'
+            )
+        if "forgotten" in found:
+            h = found["forgotten"]
+            beats.append(f"Nobody has opened {h.facts['path']} in {_days(h)}. Cobwebs are forming.")
+        if "graveyard" in found:
+            f = found["graveyard"].facts
+            beats.append(f'{f["lines"]:,} lines lie buried in the graveyard of "{f["subject"]}". May they rest in peace.')
+        if "witching" in found:
+            f = found["witching"].facts
+            count = f["count"]
+            beats.append(
+                f"{count} commit{'s were' if count != 1 else ' was'} made between midnight and 4am, the latest at {f['latest']}. Someone was up very late."
+            )
+        if "spirit" in found:
+            h, f = found["spirit"], found["spirit"].facts
+            beats.append(
+                f'The first spirit arrived {_days(h)} ago, when {f["agent"]} wrote "{f["subject"]}". The keyboard hasn\'t been the same since.'
+            )
+
+        if not beats:
+            return f"{opener} {name} looks around... but this repo is too new to be haunted. Make a few commits, and come back when there are ghosts to talk about."
+
+        random.shuffle(beats)
+        first, rest = beats[:2], beats[2:]
+        closer = (
+            f"{name} leans closer. \"Now. Back to work, before the next spirit commits for you.\""
+            if eerie
+            else f"{name} smiles. \"Every ghost here started as a commit. Let's make another.\""
+        )
+        story = " ".join([opener] + first)
+        if rest:
+            story += "\n\n" + " ".join(rest) + " " + closer
+        else:
+            story += "\n\n" + closer
+        return story
+
+
+def _days(h) -> str:
+    days = h.age_days() or 0
+    if days == 0:
+        return "less than a day"
+    if days >= 365:
+        years = days // 365
+        return f"{years} year{'s' if years > 1 else ''}"
+    if days >= 30:
+        return f"{days // 30} month{'s' if days >= 60 else ''}"
+    return f"{days} day{'s' if days != 1 else ''}"

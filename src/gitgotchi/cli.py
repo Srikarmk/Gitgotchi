@@ -184,47 +184,64 @@ def _stack(*renderables):
     return grid
 
 
+HAUNTING_ICONS = {"todo": "📜", "forgotten": "🦇", "graveyard": "💀", "witching": "🌙", "spirit": "👾"}
+
+
 @app.command()
-def story():
-    """Hear a story about your code's history."""
+def seance():
+    """Hold a séance: dig up your repo's ghosts and hear their story."""
+    from gitgotchi.history import read_history
+    from gitgotchi.paths import require_repo
+    from gitgotchi.seance.hauntings import find_hauntings
+    from gitgotchi.seance.story_gen import StoryGenerator
+
+    state_manager = load_state()
+    pet_stats = state_manager.get_pet_state()
+    repo = require_repo()
+
     try:
-        from gitgotchi.seance.story_gen import StoryGenerator
-
-        state_manager = load_state()
-        pet_stats = state_manager.get_pet_state()
-
-        generator = StoryGenerator()
-
-        context = {
-            "total_commits": pet_stats.total_commits,
-            "total_lines": pet_stats.lines_added + pet_stats.lines_deleted,
-            "days_together": (datetime.now() - pet_stats.created_at).days,
-            "recent_commits": state_manager.get_recent_commits(),
-        }
-
-        story_text = generator.generate_story(
-            "milestone", context, pet_stats.current_form.value
-        )
-
-        console.print(
-            Panel(
-                story_text,
-                title=f"📖 {pet_stats.pet_name}'s Story",
-                border_style=theme.PURPLE,
-                padding=(1, 2),
-            )
-        )
-        if generator.last_error:
-            console.print(
-                f"[dim](Couldn't reach Claude, so here's a classic story: "
-                f"{generator.last_error})[/dim]"
-            )
-
-    except typer.Exit:
-        raise
+        with console.status(Text("Lighting the candles...", style=theme.PURPLE), spinner="moon"):
+            hauntings = find_hauntings(repo, read_history(repo))
+            generator = StoryGenerator()
+            context = {
+                "name": pet_stats.pet_name,
+                "repo": Path(repo.working_tree_dir).name,
+                "total_commits": pet_stats.total_commits,
+                "possession": pet_stats.possession,
+                "recent_commits": state_manager.get_recent_commits(),
+            }
+            story_text = generator.tell(hauntings, context, pet_stats.current_form.value)
     except Exception as e:
-        render_error(f"Failed to generate story: {str(e)}")
+        render_error(f"The séance was interrupted: {e}")
         raise typer.Exit(1)
+
+    findings = Table.grid(padding=(0, 1))
+    findings.add_column(no_wrap=True)
+    findings.add_column(style=f"bold {theme.ORANGE}", no_wrap=True)
+    findings.add_column(style=theme.BONE)
+    for h in hauntings.items:
+        findings.add_row(HAUNTING_ICONS.get(h.kind, "👻"), h.title, h.detail)
+
+    body = [findings, Text(""), Text(story_text, style=f"italic {theme.BONE}")] if hauntings else [Text(story_text, style=f"italic {theme.BONE}")]
+    console.print(
+        Panel(
+            _stack(*body),
+            title=Text(f" 🔮 {pet_stats.pet_name}'s séance ", style=f"bold {theme.PURPLE}"),
+            border_style=theme.PURPLE,
+            padding=(1, 2),
+            expand=False,
+        )
+    )
+    if generator.last_error:
+        console.print(Text(f"(Couldn't reach Claude, so {pet_stats.pet_name} told this one: {generator.last_error})", style=theme.DIM))
+    elif not generator.client:
+        console.print(Text("Set ANTHROPIC_API_KEY to have Claude tell the story.", style=theme.DIM))
+
+
+@app.command(hidden=True)
+def story():
+    """Alias for seance."""
+    seance()
 
 
 @app.command()
