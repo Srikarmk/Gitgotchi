@@ -71,6 +71,7 @@ class StateManager:
             stats.current_mood = PetMood(pet_state.current_mood)
             stats.current_form = PetForm(pet_state.current_form)
             stats.created_at = pet_state.created_at
+            stats.ai_commits = pet_state.ai_commits or 0
 
         stats.update_mood()
         return stats
@@ -97,6 +98,7 @@ class StateManager:
             pet_state.quality_score = stats.quality_score
             pet_state.evolution_points = stats.evolution_points
             pet_state.friend_level = stats.friend_level
+            pet_state.ai_commits = stats.ai_commits
             pet_state.last_fed = stats.last_fed
             pet_state.current_mood = stats.current_mood.value
             pet_state.current_form = stats.current_form.value
@@ -116,6 +118,7 @@ class StateManager:
         is_merge: bool = False,
         is_revert: bool = False,
         quality_impact: float = 0.0,
+        agent: Optional[str] = None,
     ) -> None:
         """Log a commit to history.
 
@@ -130,6 +133,7 @@ class StateManager:
             is_merge: Whether this is a merge commit
             is_revert: Whether this is a revert commit
             quality_impact: Impact on quality score
+            agent: AI agent that wrote the commit, if any
         """
         with Session(self.engine) as session:
             # Check if already logged
@@ -153,6 +157,7 @@ class StateManager:
                 is_merge=is_merge,
                 is_revert=is_revert,
                 quality_impact=quality_impact,
+                agent=agent,
             )
             session.add(commit)
             session.commit()
@@ -238,6 +243,7 @@ class StateManager:
         is_merge: bool = False,
         is_revert: bool = False,
         files: Sequence[str] = (),
+        agent: Optional[str] = None,
     ) -> PetStats:
         """Process a commit event and update pet state.
 
@@ -252,6 +258,7 @@ class StateManager:
             is_merge: Whether this is a merge commit
             is_revert: Whether this is a revert commit
             files: Paths touched by the commit
+            agent: AI agent that wrote the commit, if any
 
         Returns:
             Updated PetStats
@@ -269,6 +276,9 @@ class StateManager:
 
         if is_revert:
             stats.reverts += 1
+
+        if agent:
+            stats.ai_commits += 1
 
         # Merge commits just combine existing work, so they don't move quality
         quality_impact = 0.0
@@ -298,6 +308,7 @@ class StateManager:
             is_merge=is_merge,
             is_revert=is_revert,
             quality_impact=quality_impact,
+            agent=agent,
         )
 
         # Save updated state

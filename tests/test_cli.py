@@ -15,7 +15,7 @@ def test_version():
 def test_status_in_repo(repo):
     result = runner.invoke(app, ["status"])
     assert result.exit_code == 0
-    assert "EGG" in result.output
+    assert "Pumpkin" in result.output
 
 
 def test_status_outside_repo_fails(tmp_path, monkeypatch):

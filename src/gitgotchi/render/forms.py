@@ -26,10 +26,6 @@ def sphere(p, center, r):
     return np.linalg.norm(p - np.asarray(center, float), axis=1) - r
 
 
-def blinking(t: float, at: float = 0.62, length: float = 0.05) -> bool:
-    return at <= t % 1 < at + length
-
-
 def hop(t: float, hops: int = 2, height: float = 0.14) -> Pose:
     phase = (t * hops) % 1
     lift = 4 * phase * (1 - phase)
@@ -76,7 +72,7 @@ class Pumpkin(Form):
 
         front = z < -0.2
         face = np.zeros(len(p), dtype=bool)
-        if not blinking(t):
+        if not self.shut(t):
             for side in (-1, 1):
                 cx, top, bottom = side * 0.26, 0.02, -0.2
                 within = (y < top) & (y > bottom)
@@ -118,14 +114,13 @@ class Ghost(Form):
         return body
 
     def paint(self, p, n, t):
-        return paint_cute_face(p, t, eye_y=0.32)
+        return paint_cute_face(p, self.shut(t), eye_y=0.32)
 
 
-def paint_cute_face(p, t, eye_y=0.32, eye_x=0.25, cheeks=True):
+def paint_cute_face(p, closed, eye_y=0.32, eye_x=0.25, cheeks=True):
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
     out = np.zeros(len(p), dtype=int)
     front = z < 0
-    closed = blinking(t)
     for side in (-1, 1):
         cx = side * eye_x
         if cheeks:
@@ -414,7 +409,7 @@ class Zombie(Form):
         out[front & (stitch_line | stitches)] = 4
         out[front & ellipse(x, y, -0.24, 0.22, 0.13, 0.15)] = 1
         out[front & ellipse(x, y, -0.27, 0.26, 0.04, 0.05)] = 2
-        droop = 0.03 if blinking(t, 0.3, 0.15) else 0.07
+        droop = 0.03 if self.shut(t, 0.3, 0.15) else 0.07
         out[front & ellipse(x, y, 0.24, 0.17, 0.11, droop)] = 1
         mouth = (np.abs(x) < 0.16) & (np.abs(y + 0.08 - 0.08 * x) < 0.025)
         out[front & mouth] = 1
@@ -461,7 +456,7 @@ class Wraith(Form):
         out[y < -0.3] = 3
         inside = ellipsoid(p, (0, 0.36, -0.42), (0.29, 0.32, 0.22)) < 0.02
         out[inside] = 2
-        if not blinking(t, 0.4, 0.04):
+        if not self.shut(t, 0.4, 0.04):
             for side in (-1, 1):
                 out[inside & ellipse(x, y, side * 0.1, 0.36, 0.055, 0.035)] = 1
         return out

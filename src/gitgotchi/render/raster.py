@@ -6,7 +6,7 @@ into a few bands, and the silhouette gets a 1px outline so the result reads
 as hand-made pixel art.
 """
 from dataclasses import dataclass, field
-from typing import Dict, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 import numpy as np
 
@@ -44,6 +44,11 @@ class Form:
     colors: Dict[int, RGB] = field(default_factory=lambda: {0: (232, 228, 250)})
     emissive: Set[int] = field(default_factory=set)
     opacity: float = 1.0
+    eyes_closed: bool = False
+
+    def shut(self, t: float, at: float = 0.62, length: float = 0.05) -> bool:
+        """Whether the eyes are closed at time t (asleep, or mid-blink)."""
+        return self.eyes_closed or at <= t % 1 < at + length
 
     def pose(self, t: float) -> Pose:
         wave = np.sin(t * 2 * np.pi)
@@ -106,6 +111,7 @@ def render(
     height: int = 48,
     span: float = 1.35,
     offset: Tuple[float, float] = (0.0, 0.0),
+    pose: Optional[Pose] = None,
 ) -> Frame:
     """Render one frame of a form.
 
@@ -115,8 +121,9 @@ def render(
         width, height: Canvas size in pixels
         span: Half of the visible world height
         offset: Shift of the camera in world units (x, y)
+        pose: Override the form's own animation pose
     """
-    pose = form.pose(t)
+    pose = pose or form.pose(t)
     aspect = width / height
     xs = np.linspace(-span * aspect, span * aspect, width) + offset[0]
     ys = np.linspace(span, -span, height) + offset[1]

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from gitgotchi.db.state_manager import StateManager
 from gitgotchi.paths import require_repo
+from gitgotchi.pet.possession import detect_agent
 from gitgotchi.pet.renderer import render_commit_response, render_error, render_evolution
 
 
@@ -40,6 +41,7 @@ def handle_post_commit() -> None:
         old_form = old_stats.current_form
 
         # Process commit event
+        agent = detect_agent(message, commit.author.name or "", commit.author.email or "")
         new_stats = state_manager.process_commit_event(
             commit_hash=commit_hash,
             author=author,
@@ -51,14 +53,14 @@ def handle_post_commit() -> None:
             is_merge=is_merge,
             is_revert=is_revert,
             files=files,
+            agent=agent,
         )
 
         # Check for evolution
         if new_stats.current_form != old_form:
-            render_evolution(old_form, new_stats.current_form)
-
-        # Render commit response
-        render_commit_response(new_stats, lines_added, lines_deleted)
+            render_evolution(new_stats, old_form, new_stats.current_form)
+        else:
+            render_commit_response(new_stats, lines_added, lines_deleted, agent)
 
     except Exception as e:
         render_error(f"Failed to process commit: {str(e)}")

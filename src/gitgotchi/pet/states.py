@@ -23,6 +23,7 @@ class PetForm(Enum):
     DEMON = "demon"  # 6+ commits, quality < 30 (playful purple, not evil)
     ZOMBIE = "zombie"  # 4+ reverts (cute sleepy, needs coffee)
     WRAITH = "wraith"  # 15+ commits (ultimate ethereal form)
+    POLTERGEIST = "poltergeist"  # 6+ commits, mostly written by AI agents
 
 
 class PetStats:
@@ -43,6 +44,12 @@ class PetStats:
         self.friend_level: float = 1.0  # 1-10, Stardew Valley style
         self.pet_name: str = "Spirit"
         self.created_at: datetime = datetime.now()
+        self.ai_commits: int = 0
+
+    @property
+    def possession(self) -> float:
+        """Share of commits written by AI agents (0-1)."""
+        return self.ai_commits / self.total_commits if self.total_commits else 0.0
 
     def update_mood(self) -> None:
         """Update pet mood based on current stats and time."""
@@ -69,6 +76,9 @@ class PetStats:
         # Zombie path: lots of reverts (cute sleepy form)
         elif self.reverts >= 4:
             self.current_form = PetForm.ZOMBIE
+        # Possessed path: the agents are doing most of the committing
+        elif self.total_commits >= 6 and self.possession >= 0.5:
+            self.current_form = PetForm.POLTERGEIST
         # Ultimate form: 15+ commits
         elif self.total_commits >= 15:
             self.current_form = PetForm.WRAITH
@@ -89,12 +99,15 @@ class PetStats:
         self.last_fed = datetime.now()
         self.update_mood()
 
-    def interact(self) -> str:
-        """Handle user interaction (pet, talk, play)."""
-        # Wake up if sleeping
+    def interact(self) -> bool:
+        """Handle user interaction (pet, talk, play).
+
+        Returns:
+            True if the pet was woken up
+        """
         if self.current_mood == PetMood.SLEEPING:
             self.current_mood = PetMood.CONTENT
-            return "Your friend wakes up! They're happy to see you! ✨"
+            return True
 
         # Improve mood slightly
         if self.current_mood == PetMood.TIRED:
@@ -104,14 +117,4 @@ class PetStats:
 
         # Increase friendship
         self.friend_level = min(10, self.friend_level + 0.5)
-
-        responses = [
-            "Your friend sparkles with joy! ✨",
-            "They float happily around you! 💛",
-            "Your companion feels loved! 🌟",
-            "Friendship +0.5! Your bond grows stronger! ❤️",
-        ]
-
-        import random
-
-        return random.choice(responses)
+        return False
