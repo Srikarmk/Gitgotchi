@@ -1,6 +1,9 @@
 """Pet state machine."""
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Sequence
+
+from gitgotchi.pet.quality import score_commit, update_quality
 
 
 class PetMood(Enum):
@@ -94,10 +97,48 @@ class PetStats:
         else:
             self.current_form = PetForm.GHOST
 
-    def feed(self) -> None:
+    def feed(self, when: Optional[datetime] = None) -> None:
         """Feed the pet (update last_fed timestamp)."""
-        self.last_fed = datetime.now()
+        self.last_fed = when or datetime.now()
         self.update_mood()
+
+    def eat_commit(
+        self,
+        message: str,
+        lines_added: int = 0,
+        lines_deleted: int = 0,
+        is_merge: bool = False,
+        is_revert: bool = False,
+        files: Sequence[str] = (),
+        agent: Optional[str] = None,
+        when: Optional[datetime] = None,
+    ) -> float:
+        """Update every stat for one commit.
+
+        Returns:
+            How much the commit moved the quality score
+        """
+        self.total_commits += 1
+        self.lines_added += lines_added
+        self.lines_deleted += lines_deleted
+        if is_merge:
+            self.merge_conflicts += 1
+        if is_revert:
+            self.reverts += 1
+        if agent:
+            self.ai_commits += 1
+
+        # Merge commits just combine existing work, so they don't move quality
+        quality_impact = 0.0
+        if not is_merge:
+            commit_score = score_commit(message, lines_added + lines_deleted, files, is_revert)
+            new_quality = update_quality(self.quality_score, commit_score)
+            quality_impact = new_quality - self.quality_score
+            self.quality_score = new_quality
+
+        self.feed(when)
+        self.update_form()
+        return quality_impact
 
     def interact(self) -> bool:
         """Handle user interaction (pet, talk, play).

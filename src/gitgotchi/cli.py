@@ -1,6 +1,7 @@
 """Main CLI interface."""
 import random
 from datetime import datetime
+from typing import Optional
 
 import typer
 from dotenv import find_dotenv, load_dotenv
@@ -55,9 +56,23 @@ def install():
         console.print(
             Text("\n🎃 Your repo is haunted. Every commit will feed your companion.", style=theme.ORANGE)
         )
-        console.print(Text("Make a commit to wake it up...\n", style=theme.DIM))
+        if _has_unadopted_history():
+            console.print(Text("This repo already has history. Run `gitgotchi adopt` to raise your companion on it.\n", style=theme.DIM))
+        else:
+            console.print(Text("Make a commit to wake it up...\n", style=theme.DIM))
     else:
         raise typer.Exit(1)
+
+
+def _has_unadopted_history() -> bool:
+    from gitgotchi.paths import find_repo
+
+    repo = find_repo()
+    try:
+        has_commits = repo is not None and repo.head.is_valid()
+        return has_commits and StateManager().get_pet_state().total_commits == 0
+    except Exception:
+        return False
 
 
 @app.command()
@@ -209,6 +224,55 @@ def story():
     except Exception as e:
         render_error(f"Failed to generate story: {str(e)}")
         raise typer.Exit(1)
+
+
+@app.command()
+def adopt(
+    limit: Optional[int] = typer.Option(None, help="Only replay the most recent N commits"),
+    reset: bool = typer.Option(False, "--reset", help="Start the pet over before replaying"),
+):
+    """Raise your companion on this repo's existing history."""
+    from gitgotchi.history import read_history
+    from gitgotchi.paths import require_repo
+    from gitgotchi.pet.renderer import animate, evolution_frames
+
+    state_manager = load_state()
+    if reset:
+        state_manager.reset()
+
+    with console.status(Text("Summoning the spirits of commits past...", style=theme.PURPLE), spinner="moon"):
+        history = read_history(require_repo(), limit=limit)
+        replay = state_manager.replay_history(history)
+
+    stats = replay.stats
+    if not history:
+        console.print(Text("\n🕸️  No commits here yet. Make one and your companion will wake up.\n", style=theme.PURPLE))
+        return
+    if replay.count == 0:
+        console.print(Text(f"\n🕯️  {stats.pet_name} has already tasted every commit here.", style=theme.PURPLE))
+        console.print(Text("Use --reset to raise it again from a pumpkin.\n", style=theme.DIM))
+        return
+
+    if console.is_terminal and stats.current_form != PetForm.EGG:
+        animate(evolution_frames(stats, PetForm.EGG, stats.current_form, seconds=3.2))
+
+    since = replay.since.strftime("%b %d, %Y") if replay.since else "the beginning"
+    info = theme.form_info(stats.current_form)
+    console.print(
+        Text.assemble(
+            ("\n🎃 Replayed ", theme.DIM),
+            (f"{replay.count:,} commits", f"bold {theme.ORANGE}"),
+            (f" going back to {since}.\n", theme.DIM),
+            (f"   {stats.pet_name} grew into a ", theme.DIM),
+            (f"{info.title} {info.icon}", f"bold {info.color}"),
+            (f"  ·  {stats.possession:.0%} possessed by AI agents", theme.CYAN),
+        )
+    )
+    if replay.agents:
+        spirits = "  ·  ".join(f"{name} {count:,}" for name, count in replay.agents.most_common())
+        console.print(Text(f"   Spirits in this repo: {spirits}", style=theme.DIM))
+    console.print()
+    render_pet(stats)
 
 
 @app.command()
