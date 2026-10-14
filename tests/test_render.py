@@ -1,3 +1,5 @@
+import io
+
 import numpy as np
 import pytest
 from rich.console import Console
@@ -30,7 +32,7 @@ def test_png_encoding():
 
 
 def test_pixel_art_width():
-    console = Console(width=100, color_system="truecolor", record=True, file=open("/dev/null", "w"))
+    console = Console(width=100, color_system="truecolor", record=True, file=io.StringIO())
     console.print(PixelArt(render_scene(form_for("ghost"), 0.0)))
     lines = console.export_text().splitlines()
     assert len(lines) == 24
