@@ -7,6 +7,7 @@ from gitgotchi.pet import theme
 from gitgotchi.pet.states import PetStats
 from gitgotchi.render import render_scene
 from gitgotchi.render.font import draw_text, text_width
+from gitgotchi.render.scene import upscale
 from gitgotchi.render.forms import form_for
 
 CARD_W, CARD_H = 240, 126
@@ -40,6 +41,24 @@ def agent_line(agents: Dict[str, int], width: int) -> str:
         if text_width(line) <= width:
             return line
     return ranked[0][0][: width // 6]
+
+
+def make_card_gif(stats: PetStats, repo_name: str, agents: Dict[str, int], scale: int = SCALE, frames: int = 24) -> bytes:
+    """The card with the pet moving, as an animated GIF (needs Pillow)."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    images = [
+        Image.fromarray(upscale(make_card(stats, repo_name, agents, t=i / frames), scale)[:, :, :3])
+        for i in range(frames)
+    ]
+    # One shared palette keeps colors from flickering between frames
+    palette = images[0].quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    paletted = [image.quantize(palette=palette, dither=Image.Dither.NONE) for image in images]
+    out = BytesIO()
+    paletted[0].save(out, format="GIF", save_all=True, append_images=paletted[1:], duration=1000 // 12, loop=0, optimize=True)
+    return out.getvalue()
 
 
 def make_card(stats: PetStats, repo_name: str, agents: Dict[str, int], t: float = 0.15) -> np.ndarray:

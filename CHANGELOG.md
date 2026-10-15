@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0
+
+### New
+
+- `gitgotchi-statusline`: one line about your companion for Claude Code's status line, tmux or
+  Starship. It uses only the standard library, so it runs in about 50 ms, and prints nothing outside
+  a haunted repo. `gitgotchi statusline --setup` shows the config snippets.
+- `gitgotchi badge`: an SVG README badge with a pixel portrait of your companion and its form.
+- `gitgotchi config full|line|off [--global]`: choose how much the hook prints after each commit.
+- `gitgotchi doctor`: checks git, the hook and its Python, the database, your terminal and the
+  API key, with a fix for each problem. It never prints the key.
+- `gitgotchi card --gif`: an animated card (install `gitgotchi[gif]` for Pillow).
+
+## 0.3.2
+
+### Sharper sprites
+
+- Every form is framed bigger, so it gets about 60% more pixels in the same space.
+- Shading uses hue-shifted color ramps (cool shadows, warm highlights) lit from the upper front, with
+  soft contact shadows, so forms look round instead of striped.
+- Glossy highlights on the pumpkin, the Demon and the Poltergeist's keycaps.
+- Outlines pick up a little of the color they border, and dark inner lines separate parts that
+  overlap (arms, horns, keycaps).
+- A cleanup pass removes one-pixel spurs, notches and stray shading pixels.
+- The pumpkin's shadows are warm instead of muddy, the Demon has bigger curved horns, and the Angel
+  has feathered wings and a halo that stays in frame.
+
 ## 0.3.1
 
 ### Fixed

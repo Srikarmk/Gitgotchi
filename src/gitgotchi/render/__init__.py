@@ -30,7 +30,8 @@ def render_scene(
         pose = Pose(yaw=0.0, bob=0.015 * np.sin(t * 2 * np.pi), squash=0.97, tilt=0.0)
         form.eyes_closed = True
 
-    frame = render(form, t, width, height, offset=(0.0, 0.12), pose=pose)
+    # Framed tight so the pet gets as many pixels as the canvas allows
+    frame = render(form, t, width, height, span=1.2, offset=(0.0, 0.07), pose=pose)
     frame.rgba = effects.flash(frame.rgba, flash)
     if not stage:
         return compose(frame)

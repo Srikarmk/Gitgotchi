@@ -68,6 +68,14 @@ def amended_from(repo: Repo) -> Optional[str]:
     return None
 
 
+def configured_output(repo: Repo) -> str:
+    """`git config gitgotchi.output`: full, line or off (repo setting wins over global)."""
+    try:
+        return repo.git.config("--get", "gitgotchi.output").strip().lower() or "full"
+    except GitCommandError:  # not set
+        return "full"
+
+
 def handle_post_commit() -> None:
     """Handle post-commit hook."""
     try:
@@ -84,11 +92,12 @@ def handle_post_commit() -> None:
         if feeding is None:
             return
 
+        style = configured_output(repo)
         if feeding.evolved:
-            render_evolution(feeding.stats, feeding.old_form, feeding.stats.current_form)
+            render_evolution(feeding.stats, feeding.old_form, feeding.stats.current_form, style)
         else:
             render_commit_response(
-                feeding.stats, feeding.lines_added, feeding.lines_deleted, feeding.agent
+                feeding.stats, feeding.lines_added, feeding.lines_deleted, feeding.agent, style
             )
 
     except Exception as e:

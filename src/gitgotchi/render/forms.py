@@ -52,6 +52,8 @@ class Pumpkin(Form):
         }
     )
     emissive: set = field(default_factory=lambda: {3})
+    gloss: float = 0.1
+    shadow: tuple = (120, 26, 34)
 
     def pose(self, t):
         return hop(t)
@@ -67,7 +69,6 @@ class Pumpkin(Form):
     def paint(self, p, n, t):
         x, y, z = p[:, 0], p[:, 1], p[:, 2]
         out = np.zeros(len(p), dtype=int)
-        out[np.cos(8 * np.arctan2(z, x)) < -0.75] = 1
         out[y > 0.17] = 2
 
         front = z < -0.2
@@ -91,6 +92,7 @@ class Ghost(Form):
     """The default friendly spirit."""
 
     name: str = "ghost"
+    gloss: float = 0.03
     colors: dict = field(
         default_factory=lambda: {
             0: (234, 230, 252),
@@ -141,6 +143,7 @@ class Poltergeist(Form):
     with keycaps orbiting it."""
 
     name: str = "poltergeist"
+    gloss: float = 0.08
     outline: tuple = (14, 26, 54)
     rim: tuple = (60, 110, 220)
     colors: dict = field(
@@ -271,15 +274,26 @@ class Angel(Ghost):
     )
     emissive: set = field(default_factory=lambda: {4})
 
+    def pose(self, t):
+        # Sit a little lower than a ghost so the halo stays in frame
+        pose = Ghost.pose(self, t)
+        pose.bob -= 0.08
+        return pose
+
     def _halo(self, p, t):
-        return torus(p, (0, 0.98 + 0.03 * np.sin(t * TAU * 2), 0.05), 0.3, 0.06, tilt=-0.55)
+        return torus(p, (0, 0.97 + 0.03 * np.sin(t * TAU * 2), 0.05), 0.27, 0.055, tilt=-0.42)
 
     def _wings(self, p, t):
-        flap = 0.25 * np.sin(t * TAU * 3)
+        """Two wings, each three feather lobes fanned out from behind the body."""
+        flap = 0.18 * np.sin(t * TAU * 3)
         d = np.full(len(p), 1e3)
+        feathers = ((0.4, 0.13, 0.0), (0.32, 0.11, 0.2), (0.24, 0.09, 0.38))
         for side in (-1, 1):
-            q = spin_z(p, (side * 0.6, 0.25, 0.3), side * (0.6 + flap))
-            d = np.minimum(d, ellipsoid(q, (side * 0.18, 0, 0), (0.34, 0.2, 0.07)))
+            pivot = (side * 0.48, 0.22, 0.28)
+            for length, thickness, fan in feathers:
+                q = spin_z(p, pivot, side * (0.95 + flap - fan))
+                lobe = ellipsoid(q, (side * length * 0.85, 0, 0), (length, thickness, 0.05))
+                d = smin(d, lobe, 0.03)
         return d
 
     def sdf(self, p, t):
@@ -298,6 +312,7 @@ class Demon(Form):
     """Chaotic path: horns, a forked tail and burning eyes."""
 
     name: str = "demon"
+    gloss: float = 0.06
     outline: tuple = (20, 6, 14)
     rim: tuple = (220, 60, 40)
     colors: dict = field(
@@ -320,10 +335,11 @@ class Demon(Form):
     def _horns(self, p):
         d = np.full(len(p), 1e3)
         for side in (-1, 1):
-            for k in range(5):
-                s = k / 4
-                center = (side * (0.32 + 0.22 * s), 0.62 + 0.42 * s - 0.12 * s * s, -0.02)
-                d = smin(d, sphere(p, center, 0.12 * (1 - s) + 0.025), 0.06)
+            # A curved horn: a chain of shrinking spheres sweeping up and out
+            for k in range(7):
+                s = k / 6
+                center = (side * (0.3 + 0.34 * s - 0.08 * s * s), 0.6 + 0.5 * s - 0.1 * s**3, -0.04)
+                d = smin(d, sphere(p, center, 0.15 * (1 - s) + 0.03), 0.05)
         return d
 
     def _tail(self, p, t):

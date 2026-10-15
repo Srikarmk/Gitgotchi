@@ -33,7 +33,7 @@ jobs:
       # Test the built wheel, not the source tree, so packaging mistakes fail CI
       - name: Install wheel
         shell: bash
-        run: pip install dist/*.whl pytest
+        run: pip install "$(ls dist/*.whl)[gif]" pytest
 
       - name: Test
         run: pytest -q

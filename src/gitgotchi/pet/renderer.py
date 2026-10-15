@@ -132,8 +132,30 @@ def evolution_frames(stats: PetStats, old_form: PetForm, new_form: PetForm, seco
             yield pet_view(new_stats, t=p, show_stats=False, flash=max(0.0, 1 - k * 1.6), sparkles=int((1 - k) * 22) + 4, seed=i)
 
 
-def render_evolution(stats: PetStats, old_form: PetForm, new_form: PetForm) -> None:
+OUTPUT_STYLES = ("full", "line", "off")
+
+
+def output_style(requested: str = "full") -> str:
+    """How much the hook prints: the user's setting, but never the full pet
+    when nobody is watching a terminal (an AI agent running git, CI)."""
+    style = requested if requested in OUTPUT_STYLES else "full"
+    if style == "full" and not console.is_terminal:
+        return "line"
+    return style
+
+
+def render_evolution(stats: PetStats, old_form: PetForm, new_form: PetForm, style: str = "full") -> None:
+    style = output_style(style)
+    if style == "off":
+        return
     old, new = theme.form_info(old_form), theme.form_info(new_form)
+    if style == "line":
+        console.print(
+            f"{new.icon} gitgotchi: {stats.pet_name} evolved: {old.title} → {new.title}",
+            markup=False,
+            highlight=False,
+        )
+        return
     if console.is_terminal:
         console.print(Text("\n  Something is happening in the repo...", style=f"italic {theme.PURPLE}"))
         animate(evolution_frames(stats, old_form, new_form))
@@ -151,19 +173,23 @@ def render_commit_response(
     lines_added: int,
     lines_deleted: int,
     agent: Optional[str] = None,
+    style: str = "full",
 ) -> None:
-    """React to a commit.
+    """React to a commit, as loudly as `style` (full, line or off) allows.
 
-    Outside a real terminal (an AI agent running git, CI) this prints a
+    Outside a real terminal (an AI agent running git, CI) "full" becomes a
     single line so it doesn't flood the agent's context.
     """
+    style = output_style(style)
+    if style == "off":
+        return
     if agent:
         line = random.choice(theme.AGENT_REACTIONS).format(name=stats.pet_name, agent=agent)
     else:
         line = random.choice(theme.COMMIT_REACTIONS).format(name=stats.pet_name)
     icon = theme.form_info(stats.current_form).icon
 
-    if not console.is_terminal:
+    if style == "line":
         console.print(f"{icon} gitgotchi: {line} (+{lines_added} -{lines_deleted})", markup=False, highlight=False)
         return
 
