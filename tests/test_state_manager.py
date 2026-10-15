@@ -30,7 +30,9 @@ def test_moves_legacy_state_into_git_dir(repo):
     root = Path(repo.working_tree_dir)
     legacy = root / ".gitgotchi" / "state.db"
     legacy.parent.mkdir()
-    StateManager(str(legacy)).save_pet_state(_named("Old"))
+    old = StateManager(str(legacy))
+    old.save_pet_state(_named("Old"))
+    old.close()
 
     assert StateManager().get_pet_state().pet_name == "Old"
     assert not legacy.exists()
@@ -152,3 +154,21 @@ def test_adopting_old_history_keeps_the_pet_awake(repo):
     manager.replay_history([HistoryCommit("a" * 40, "Dev", "d@x.com", old, 1, "feat: ancient", 1, 0, [])])
 
     assert manager.get_pet_state().current_mood != PetMood.SLEEPING
+
+
+def test_keeps_using_legacy_state_if_it_cannot_be_moved(repo, monkeypatch):
+    import shutil
+
+    root = Path(repo.working_tree_dir)
+    legacy = root / ".gitgotchi" / "state.db"
+    legacy.parent.mkdir()
+    old = StateManager(str(legacy))
+    old.save_pet_state(_named("Busy"))
+    old.close()
+
+    def locked(*args, **kwargs):
+        raise PermissionError("file is in use")
+
+    monkeypatch.setattr(shutil, "move", locked)
+    assert StateManager().get_pet_state().pet_name == "Busy"
+    assert legacy.exists()

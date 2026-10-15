@@ -49,7 +49,11 @@ def state_db_path(repo: Repo) -> Path:
     legacy = Path(repo.working_tree_dir) / LEGACY_STATE_DIR / "state.db"
     if legacy.exists() and not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(legacy), str(path))
+        try:
+            shutil.move(str(legacy), str(path))
+        except OSError:
+            # Still open somewhere (an old `haunt`, on Windows); move it next time
+            return legacy
         try:
             legacy.parent.rmdir()
         except OSError:
