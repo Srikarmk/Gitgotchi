@@ -164,7 +164,7 @@ def render_commit_response(
     icon = theme.form_info(stats.current_form).icon
 
     if not console.is_terminal:
-        console.print(f"{icon} gitgotchi: {line} (+{lines_added} -{lines_deleted})")
+        console.print(f"{icon} gitgotchi: {line} (+{lines_added} -{lines_deleted})", markup=False, highlight=False)
         return
 
     console.print(

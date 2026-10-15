@@ -2,16 +2,34 @@
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from git import GitCommandError, Repo
 
-from gitgotchi.history import HistoryCommit, read_history
+from gitgotchi.history import HistoryCommit, read_history, unquote_path
 from gitgotchi.pet.possession import detect_agent
 from gitgotchi.pet.quality import commit_subject
 
 TODO = re.compile(r"\b(TODO|FIXME|HACK|XXX)\b")
-MAX_BLAMES = 25
+MAX_FILES = 60
+MAX_TODOS_PER_FILE = 40
+
+
+def _split_grep_line(line: str) -> Tuple[str, str, str]:
+    """Split `git grep -n` output into (path, line number, text).
+
+    Unusual paths come back quoted ("caf\\303\\251.py":3:...), so the path can't
+    just be split off at the first colon.
+    """
+    if line.startswith('"'):
+        end = 1
+        while end < len(line) and not (line[end] == '"' and line[end - 1] != "\\"):
+            end += 1
+        path, rest = unquote_path(line[: end + 1]), line[end + 2 :]
+        number, _, text = rest.partition(":")
+        return path, number, text
+    path, number, text = (line.split(":", 2) + ["", ""])[:3]
+    return path, number, text
 
 
 @dataclass
@@ -57,20 +75,25 @@ def _oldest_todo(repo: Repo, history) -> Optional[Haunting]:
     except GitCommandError:  # no matches
         return None
 
-    oldest = None
-    candidates = []
+    by_file: Dict[str, List[Tuple[str, str]]] = {}
     for line in output.splitlines():
-        path, number, text = (line.split(":", 2) + ["", ""])[:3]
+        path, number, text = _split_grep_line(line)
         if number.isdigit() and TODO.search(text):
-            candidates.append((path, number, text))
-    for path, number, text in candidates[:MAX_BLAMES]:
-        blame = repo.git.blame("--line-porcelain", "-L", f"{number},{number}", "--", path)
-        stamp = re.search(r"^author-time (\d+)", blame, re.MULTILINE)
-        if not stamp:
+            by_file.setdefault(path, []).append((number, text))
+
+    # One blame per file covering all its TODO lines, for up to MAX_FILES files
+    oldest = None
+    for path, todos in list(by_file.items())[:MAX_FILES]:
+        ranges = [arg for number, _ in todos[:MAX_TODOS_PER_FILE] for arg in ("-L", f"{number},{number}")]
+        try:
+            blame = repo.git.blame("--line-porcelain", *ranges, "--", path)
+        except GitCommandError:
             continue
-        when = datetime.fromtimestamp(int(stamp.group(1)))
-        if oldest is None or when < oldest[0]:
-            oldest = (when, path, number, text.strip())
+        stamps = [int(s) for s in re.findall(r"^author-time (\d+)", blame, re.MULTILINE)]
+        for (number, text), stamp in zip(todos, stamps):
+            when = datetime.fromtimestamp(stamp)
+            if oldest is None or when < oldest[0]:
+                oldest = (when, path, number, text.strip())
 
     if oldest is None:
         return None
@@ -87,7 +110,7 @@ def _oldest_todo(repo: Repo, history) -> Optional[Haunting]:
 
 
 def _forgotten_file(repo: Repo, history) -> Optional[Haunting]:
-    tracked = set(repo.git.ls_files().splitlines())
+    tracked = {unquote_path(p) for p in repo.git.ls_files().splitlines()}
     # (timestamp, position in history) so same-second commits keep their order
     last_touched: Dict[str, tuple] = {}
     for index, commit in enumerate(history):
@@ -118,16 +141,18 @@ def _graveyard(repo: Repo, history) -> Optional[Haunting]:
 
 
 def _witching_hour(repo: Repo, history) -> Optional[Haunting]:
-    late = [c for c in history if 0 <= c.timestamp.hour < 4]
+    # The author's own clock: 2am for them, whatever timezone you're in
+    late = [(c.authored or c.timestamp, c) for c in history]
+    late = [(when, c) for when, c in late if 0 <= when.hour < 4]
     if not late:
         return None
-    latest = max(late, key=lambda c: (c.timestamp.hour, c.timestamp.minute))
+    latest, _ = max(late, key=lambda pair: (pair[0].hour, pair[0].minute))
     return Haunting(
         "witching",
         "Commits at the witching hour",
-        f"{len(late)} between midnight and 4am, the latest at {latest.timestamp:%H:%M}",
-        latest.timestamp,
-        {"count": len(late), "latest": f"{latest.timestamp:%H:%M}"},
+        f"{len(late)} between midnight and 4am, the latest at {latest:%H:%M}",
+        latest.replace(tzinfo=None),
+        {"count": len(late), "latest": f"{latest:%H:%M}"},
     )
 
 

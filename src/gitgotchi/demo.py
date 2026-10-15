@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import tempfile
 import threading
-import time
 from pathlib import Path
 
 from git import Repo
@@ -43,6 +42,8 @@ def run_demo(interval: float = 2.8, fps: int = 12) -> None:
     root = Path(tempfile.mkdtemp(prefix="gitgotchi-demo-"))
     cwd = os.getcwd()
     stop = threading.Event()
+    state = None
+    worker = None
     try:
         repo = Repo.init(root)
         with repo.config_writer() as cw:
@@ -63,10 +64,14 @@ def run_demo(interval: float = 2.8, fps: int = 12) -> None:
                 if stop.wait(interval):
                     return
 
-        threading.Thread(target=committer, daemon=True).start()
+        worker = threading.Thread(target=committer, daemon=True)
+        worker.start()
         haunt(Repo(root), state, fps=fps, grace=0.2)
     finally:
         stop.set()
-        time.sleep(0.1)
+        if worker:
+            worker.join(timeout=10)  # let a commit in progress finish
+        if state:
+            state.close()  # Windows can't delete an open database
         os.chdir(cwd)
         shutil.rmtree(root, ignore_errors=True)
