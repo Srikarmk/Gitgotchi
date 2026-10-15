@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from git import Commit
+from git import Commit, GitCommandError, Repo
 
 from gitgotchi.db.state_manager import StateManager
 from gitgotchi.paths import require_repo
@@ -34,7 +34,7 @@ def feed_commit(state_manager: StateManager, commit: Commit) -> Optional[Feeding
     if state_manager.has_commit(commit.hexsha):
         return None
 
-    message = commit.message
+    message = commit.message.strip()
     commit_stats = commit.stats
     totals = commit_stats.total
     lines_added = totals.get("insertions", 0)
@@ -58,11 +58,29 @@ def feed_commit(state_manager: StateManager, commit: Commit) -> Optional[Feeding
     return Feeding(commit.hexsha, message, agent, lines_added, lines_deleted, old_form, stats)
 
 
+def amended_from(repo: Repo) -> Optional[str]:
+    """The commit that HEAD replaced, if the last commit was an amend."""
+    try:
+        if repo.git.reflog("-1", "--format=%gs").startswith("commit (amend)"):
+            return repo.git.rev_parse("HEAD@{1}")
+    except GitCommandError:
+        pass
+    return None
+
+
 def handle_post_commit() -> None:
     """Handle post-commit hook."""
     try:
         repo = require_repo()
-        feeding = feed_commit(StateManager(), repo.head.commit)
+        state_manager = StateManager()
+        commit = repo.head.commit
+
+        # An amend replaces a commit the pet already ate; don't count it twice
+        previous = amended_from(repo)
+        if previous and state_manager.replace_commit(previous, commit.hexsha, commit.message.strip()):
+            return
+
+        feeding = feed_commit(state_manager, commit)
         if feeding is None:
             return
 
