@@ -183,6 +183,7 @@ def render(
     on, material, band = clean_pixels(on, material, band)
 
     depth_map = np.where(on, depth.reshape(shape), 0.0)
+    depth_map = borrow_depth(depth_map, on & ~hit.reshape(shape), hit.reshape(shape) & on)
     rgba = np.zeros((height, width, 4))
     glow = np.zeros((height, width, 3))
     for m in np.unique(material[on]):
@@ -295,6 +296,26 @@ def clean_pixels(on: np.ndarray, material: np.ndarray, band: np.ndarray):
         tallies = np.stack([(votes == k).sum(axis=0) for k in range(len(BAND_EDGES) + 1)])
         band[lonely] = tallies.argmax(axis=0)[lonely]
     return on, material, band
+
+
+def borrow_depth(depth: np.ndarray, filled: np.ndarray, real: np.ndarray) -> np.ndarray:
+    """Give pixels filled in by clean_pixels the depth of their nearest real neighbour.
+
+    A filled notch's ray never hit the surface, so its depth is wherever the march
+    gave up, far behind its neighbours; without this, draw_inner_lines inks it dark
+    and the notch shows up again."""
+    if not filled.any():
+        return depth
+    nearest = np.full(depth.shape, np.inf)
+    for axis in (0, 1):
+        for shift in (1, -1):
+            neighbour = shifted(depth, shift, axis)
+            ok = shifted(real, shift, axis, False)
+            nearest = np.where(ok, np.minimum(nearest, neighbour), nearest)
+    out = depth.copy()
+    take = filled & np.isfinite(nearest)
+    out[take] = nearest[take]
+    return out
 
 
 def draw_inner_lines(frame: Frame, on: np.ndarray, depth: np.ndarray, color: RGB) -> None:
