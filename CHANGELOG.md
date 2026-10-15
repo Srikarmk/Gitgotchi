@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.2
+
+### Sharper sprites
+
+- Every form is framed bigger, so it gets about 60% more pixels in the same space.
+- Shading uses hue-shifted color ramps (cool shadows, warm highlights) lit from the upper front, with
+  soft contact shadows, so forms look round instead of striped.
+- Glossy highlights on the pumpkin, the Demon and the Poltergeist's keycaps.
+- Outlines pick up a little of the color they border, and dark inner lines separate parts that
+  overlap (arms, horns, keycaps).
+- A cleanup pass removes one-pixel spurs, notches and stray shading pixels.
+- The pumpkin's shadows are warm instead of muddy, the Demon has bigger curved horns, and the Angel
+  has feathered wings and a halo that stays in frame.
+
 ## 0.3.1
 
 ### Fixed
