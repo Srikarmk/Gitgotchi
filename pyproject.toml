@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gitgotchi"
 dynamic = ["version"]
-description = "A Stardew Valley X Halloween-inspired terminal companion for your git repository"
+description = "A 3D pixel-art Halloween spirit that haunts your git repo and reacts as you (and your AI agents) commit"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -46,6 +46,7 @@ dependencies = [
     "sqlalchemy>=2.0.36",
     "typer>=0.12.0",
     "python-dotenv>=1.0.0",
+    "numpy>=1.24",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +55,7 @@ dev = [
     "pytest-cov>=5.0",
     "build>=1.2",
     "ruff>=0.6",
+    "pillow>=10.0",
 ]
 
 [project.scripts]

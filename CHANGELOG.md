@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.0 - Halloween
+
+### New
+
+- **3D pixel-art companion.** Every form is a 3D model, raymarched and cel-shaded into pixel art and
+  drawn in the terminal with true-color half blocks. It bobs, blinks and spins, on a night-sky stage.
+- **Halloween all year.** Pumpkin replaces Egg, and everything got a new look and voice: cute early
+  forms, eerie Demon, Wraith and Poltergeist.
+- **Possession.** Commits written by AI agents are recognised from their trailers, footers and bot
+  accounts. They fill a possession meter and unlock the new **Poltergeist** form.
+- `gitgotchi haunt`: a live pane that reacts to every commit as it lands, with sparkles, possession
+  glitches for agent commits, and evolution animations.
+- `gitgotchi adopt`: raise your companion on the history a repo already has.
+- `gitgotchi card`: a shareable 1200x630 PNG.
+- `gitgotchi seance`: ghost stories built from your repo's real history (oldest TODO, forgotten files,
+  biggest deletion, late-night commits, the first agent commit). `story` still works as an alias.
+- `gitgotchi demo`: watch a throwaway repo get haunted.
+
+### Changed
+
+- The hook prints a single line when git isn't attached to a terminal, so agents running `git commit`
+  don't get the full pet in their output.
+- Evolution plays an animation in real terminals.
+- `numpy` is now a dependency.
+- Databases from 0.2.0 are upgraded automatically.
+
 ## 0.2.0
 
 ### Fixed

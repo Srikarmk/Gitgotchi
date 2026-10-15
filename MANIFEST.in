@@ -5,3 +5,5 @@ include INSTALL.md
 recursive-include tests *.py
 global-exclude __pycache__
 global-exclude *.py[co]
+prune docs
+prune previews

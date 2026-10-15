@@ -2,8 +2,8 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Float, Integer, String, Text, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
+from sqlalchemy import Float, Integer, String, Text, create_engine, inspect, text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -27,6 +27,7 @@ class PetState(Base):
     quality_score: Mapped[float] = mapped_column(Float, default=50.0)
     evolution_points: Mapped[int] = mapped_column(Integer, default=0)
     friend_level: Mapped[float] = mapped_column(Float, default=1.0)
+    ai_commits: Mapped[int] = mapped_column(Integer, default=0)
     last_fed: Mapped[datetime] = mapped_column(default=datetime.now)
     current_mood: Mapped[str] = mapped_column(String(20), default="content")
     current_form: Mapped[str] = mapped_column(String(20), default="egg")
@@ -52,6 +53,7 @@ class CommitHistory(Base):
     is_merge: Mapped[bool] = mapped_column(default=False)
     is_revert: Mapped[bool] = mapped_column(default=False)
     quality_impact: Mapped[float] = mapped_column(Float, default=0.0)
+    agent: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     processed_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
 
@@ -90,3 +92,21 @@ def init_db(db_path: str = ".gitgotchi/state.db") -> None:
     """
     engine = get_engine(db_path)
     Base.metadata.create_all(engine)
+    add_missing_columns(engine)
+
+
+# Columns added after 0.2.0, as (table, column, SQL type and default)
+ADDED_COLUMNS = [
+    ("pet_state", "ai_commits", "INTEGER NOT NULL DEFAULT 0"),
+    ("commit_history", "agent", "VARCHAR(50)"),
+]
+
+
+def add_missing_columns(engine) -> None:
+    """Upgrade databases created by older versions in place."""
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table, column, ddl in ADDED_COLUMNS:
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if column not in existing:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))

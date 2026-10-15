@@ -1,6 +1,9 @@
 """Pet state machine."""
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Sequence
+
+from gitgotchi.pet.quality import score_commit, update_quality
 
 
 class PetMood(Enum):
@@ -23,6 +26,7 @@ class PetForm(Enum):
     DEMON = "demon"  # 6+ commits, quality < 30 (playful purple, not evil)
     ZOMBIE = "zombie"  # 4+ reverts (cute sleepy, needs coffee)
     WRAITH = "wraith"  # 15+ commits (ultimate ethereal form)
+    POLTERGEIST = "poltergeist"  # 6+ commits, mostly written by AI agents
 
 
 class PetStats:
@@ -43,6 +47,12 @@ class PetStats:
         self.friend_level: float = 1.0  # 1-10, Stardew Valley style
         self.pet_name: str = "Spirit"
         self.created_at: datetime = datetime.now()
+        self.ai_commits: int = 0
+
+    @property
+    def possession(self) -> float:
+        """Share of commits written by AI agents (0-1)."""
+        return self.ai_commits / self.total_commits if self.total_commits else 0.0
 
     def update_mood(self) -> None:
         """Update pet mood based on current stats and time."""
@@ -69,6 +79,9 @@ class PetStats:
         # Zombie path: lots of reverts (cute sleepy form)
         elif self.reverts >= 4:
             self.current_form = PetForm.ZOMBIE
+        # Possessed path: the agents are doing most of the committing
+        elif self.total_commits >= 6 and self.possession >= 0.5:
+            self.current_form = PetForm.POLTERGEIST
         # Ultimate form: 15+ commits
         elif self.total_commits >= 15:
             self.current_form = PetForm.WRAITH
@@ -84,17 +97,58 @@ class PetStats:
         else:
             self.current_form = PetForm.GHOST
 
-    def feed(self) -> None:
+    def feed(self, when: Optional[datetime] = None) -> None:
         """Feed the pet (update last_fed timestamp)."""
-        self.last_fed = datetime.now()
+        self.last_fed = when or datetime.now()
         self.update_mood()
 
-    def interact(self) -> str:
-        """Handle user interaction (pet, talk, play)."""
-        # Wake up if sleeping
+    def eat_commit(
+        self,
+        message: str,
+        lines_added: int = 0,
+        lines_deleted: int = 0,
+        is_merge: bool = False,
+        is_revert: bool = False,
+        files: Sequence[str] = (),
+        agent: Optional[str] = None,
+        when: Optional[datetime] = None,
+    ) -> float:
+        """Update every stat for one commit.
+
+        Returns:
+            How much the commit moved the quality score
+        """
+        self.total_commits += 1
+        self.lines_added += lines_added
+        self.lines_deleted += lines_deleted
+        if is_merge:
+            self.merge_conflicts += 1
+        if is_revert:
+            self.reverts += 1
+        if agent:
+            self.ai_commits += 1
+
+        # Merge commits just combine existing work, so they don't move quality
+        quality_impact = 0.0
+        if not is_merge:
+            commit_score = score_commit(message, lines_added + lines_deleted, files, is_revert)
+            new_quality = update_quality(self.quality_score, commit_score)
+            quality_impact = new_quality - self.quality_score
+            self.quality_score = new_quality
+
+        self.feed(when)
+        self.update_form()
+        return quality_impact
+
+    def interact(self) -> bool:
+        """Handle user interaction (pet, talk, play).
+
+        Returns:
+            True if the pet was woken up
+        """
         if self.current_mood == PetMood.SLEEPING:
             self.current_mood = PetMood.CONTENT
-            return "Your friend wakes up! They're happy to see you! ✨"
+            return True
 
         # Improve mood slightly
         if self.current_mood == PetMood.TIRED:
@@ -104,14 +158,4 @@ class PetStats:
 
         # Increase friendship
         self.friend_level = min(10, self.friend_level + 0.5)
-
-        responses = [
-            "Your friend sparkles with joy! ✨",
-            "They float happily around you! 💛",
-            "Your companion feels loved! 🌟",
-            "Friendship +0.5! Your bond grows stronger! ❤️",
-        ]
-
-        import random
-
-        return random.choice(responses)
+        return False

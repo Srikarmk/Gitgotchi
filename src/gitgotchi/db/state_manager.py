@@ -1,8 +1,11 @@
 """State management for pet persistence."""
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Sequence
+from collections import Counter
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from gitgotchi.db.models import (
@@ -13,8 +16,11 @@ from gitgotchi.db.models import (
     init_db,
 )
 from gitgotchi.paths import ignore_state_dir, require_repo, state_db_path
-from gitgotchi.pet.quality import score_commit, update_quality
+from gitgotchi.pet.possession import detect_agent
 from gitgotchi.pet.states import PetForm, PetMood, PetStats
+
+if TYPE_CHECKING:
+    from gitgotchi.history import HistoryCommit
 
 
 class StateManager:
@@ -71,6 +77,7 @@ class StateManager:
             stats.current_mood = PetMood(pet_state.current_mood)
             stats.current_form = PetForm(pet_state.current_form)
             stats.created_at = pet_state.created_at
+            stats.ai_commits = pet_state.ai_commits or 0
 
         stats.update_mood()
         return stats
@@ -97,6 +104,8 @@ class StateManager:
             pet_state.quality_score = stats.quality_score
             pet_state.evolution_points = stats.evolution_points
             pet_state.friend_level = stats.friend_level
+            pet_state.ai_commits = stats.ai_commits
+            pet_state.created_at = stats.created_at
             pet_state.last_fed = stats.last_fed
             pet_state.current_mood = stats.current_mood.value
             pet_state.current_form = stats.current_form.value
@@ -116,6 +125,7 @@ class StateManager:
         is_merge: bool = False,
         is_revert: bool = False,
         quality_impact: float = 0.0,
+        agent: Optional[str] = None,
     ) -> None:
         """Log a commit to history.
 
@@ -130,6 +140,7 @@ class StateManager:
             is_merge: Whether this is a merge commit
             is_revert: Whether this is a revert commit
             quality_impact: Impact on quality score
+            agent: AI agent that wrote the commit, if any
         """
         with Session(self.engine) as session:
             # Check if already logged
@@ -153,6 +164,7 @@ class StateManager:
                 is_merge=is_merge,
                 is_revert=is_revert,
                 quality_impact=quality_impact,
+                agent=agent,
             )
             session.add(commit)
             session.commit()
@@ -215,6 +227,83 @@ class StateManager:
                 is not None
             )
 
+    def reset(self) -> None:
+        """Start the pet over from a pumpkin, keeping its name."""
+        name = self.get_pet_state().pet_name
+        with Session(self.engine) as session:
+            session.query(CommitHistory).delete()
+            session.query(StoryMemory).delete()
+            session.query(PetState).delete()
+            session.add(PetState(pet_name=name))
+            session.commit()
+
+    def replay_history(self, commits: Iterable["HistoryCommit"]) -> "Replay":
+        """Feed a batch of past commits (oldest first) in one transaction."""
+        stats = self.get_pet_state()
+        was_new = stats.total_commits == 0
+        with Session(self.engine) as session:
+            known = {row[0] for row in session.query(CommitHistory.commit_hash)}
+
+        rows, agents = [], Counter()
+        first: Optional[datetime] = None
+        for c in commits:
+            if c.hexsha in known:
+                continue
+            known.add(c.hexsha)
+            agent = detect_agent(c.message, c.author_name, c.author_email)
+            impact = stats.eat_commit(
+                c.message, c.lines_added, c.lines_deleted, c.is_merge, c.is_revert,
+                c.files, agent, when=c.timestamp,
+            )
+            if agent:
+                agents[agent] += 1
+            first = first or c.timestamp
+            rows.append(
+                CommitHistory(
+                    commit_hash=c.hexsha,
+                    author=f"{c.author_name} <{c.author_email}>",
+                    message=c.message,
+                    timestamp=c.timestamp,
+                    lines_added=c.lines_added,
+                    lines_deleted=c.lines_deleted,
+                    files_changed=len(c.files),
+                    is_merge=c.is_merge,
+                    is_revert=c.is_revert,
+                    quality_impact=impact,
+                    agent=agent,
+                )
+            )
+
+        if was_new and first:
+            stats.created_at = first
+        with Session(self.engine) as session:
+            session.add_all(rows)
+            session.commit()
+        self.save_pet_state(stats)
+        stats.update_mood()
+        return Replay(stats=stats, count=len(rows), agents=agents, since=first)
+
+    def agent_counts(self) -> Counter:
+        """How many tracked commits each AI agent wrote."""
+        with Session(self.engine) as session:
+            rows = (
+                session.query(CommitHistory.agent, func.count())
+                .filter(CommitHistory.agent.isnot(None))
+                .group_by(CommitHistory.agent)
+                .all()
+            )
+            return Counter(dict(rows))
+
+    def get_recent_events(self, limit: int = 6) -> List[CommitHistory]:
+        """Most recent tracked commits, newest first."""
+        with Session(self.engine, expire_on_commit=False) as session:
+            return (
+                session.query(CommitHistory)
+                .order_by(CommitHistory.processed_at.desc(), CommitHistory.id.desc())
+                .limit(limit)
+                .all()
+            )
+
     def get_recent_commits(self, limit: int = 5) -> List[str]:
         """Most recent tracked commit messages, newest first."""
         with Session(self.engine) as session:
@@ -238,6 +327,7 @@ class StateManager:
         is_merge: bool = False,
         is_revert: bool = False,
         files: Sequence[str] = (),
+        agent: Optional[str] = None,
     ) -> PetStats:
         """Process a commit event and update pet state.
 
@@ -252,39 +342,15 @@ class StateManager:
             is_merge: Whether this is a merge commit
             is_revert: Whether this is a revert commit
             files: Paths touched by the commit
+            agent: AI agent that wrote the commit, if any
 
         Returns:
             Updated PetStats
         """
-        # Load current state
         stats = self.get_pet_state()
-
-        # Update stats
-        stats.total_commits += 1
-        stats.lines_added += lines_added
-        stats.lines_deleted += lines_deleted
-
-        if is_merge:
-            stats.merge_conflicts += 1
-
-        if is_revert:
-            stats.reverts += 1
-
-        # Merge commits just combine existing work, so they don't move quality
-        quality_impact = 0.0
-        if not is_merge:
-            commit_score = score_commit(
-                message, lines_added + lines_deleted, files, is_revert
-            )
-            new_quality = update_quality(stats.quality_score, commit_score)
-            quality_impact = new_quality - stats.quality_score
-            stats.quality_score = new_quality
-
-        # Feed the pet (updates last_fed and mood)
-        stats.feed()
-
-        # Update form based on new stats
-        stats.update_form()
+        quality_impact = stats.eat_commit(
+            message, lines_added, lines_deleted, is_merge, is_revert, files, agent
+        )
 
         # Log commit
         self.log_commit(
@@ -298,9 +364,20 @@ class StateManager:
             is_merge=is_merge,
             is_revert=is_revert,
             quality_impact=quality_impact,
+            agent=agent,
         )
 
         # Save updated state
         self.save_pet_state(stats)
 
         return stats
+
+
+@dataclass
+class Replay:
+    """Result of replaying history."""
+
+    stats: PetStats
+    count: int
+    agents: Counter
+    since: Optional[datetime]
