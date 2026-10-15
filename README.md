@@ -54,9 +54,54 @@ single line instead of the full pet, so it doesn't flood the agent's context.
 gitgotchi card
 ```
 
-Saves a 1200×630 card, sized for LinkedIn and other link previews:
+Saves a 1200×630 card, sized for LinkedIn and other link previews. Add `--gif` for one where your companion
+moves (needs `pip install "gitgotchi[gif]"`).
 
 ![A sample card](https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/card.png)
+
+For your README, `gitgotchi badge` saves a small SVG with your companion's portrait and form, and prints the
+Markdown to paste in. Run it again whenever your companion evolves.
+
+## 📟 In your status bar
+
+`gitgotchi-statusline` prints one line about the companion in the current repo, for example
+`👾 Boo the Poltergeist · 63% possessed · hungry`. It starts in about 50 ms and prints nothing outside a
+haunted repo, so it's safe to leave on everywhere.
+
+Claude Code: add this to `~/.claude/settings.json`
+
+```json
+"statusLine": {"type": "command", "command": "gitgotchi-statusline"}
+```
+
+tmux: add this to `~/.tmux.conf`
+
+```bash
+set -g status-right '#(cd #{pane_current_path} && gitgotchi-statusline --plain)'
+```
+
+`gitgotchi-statusline --setup` prints these snippets, plus one for Starship.
+
+## 🔕 How much the hook says
+
+```bash
+gitgotchi config line             # one line per commit in this repo
+gitgotchi config off --global     # silent everywhere
+gitgotchi config full             # the whole pet (the default)
+```
+
+It's stored in git config as `gitgotchi.output`, so a repo's setting wins over the global one. When an agent
+runs `git commit` without a terminal, the hook always keeps it to one line.
+
+## 🩺 Something not working?
+
+```bash
+gitgotchi doctor
+```
+
+Checks git, the hook and the Python it points at, the pet database, your terminal's colors and size, and
+whether stories can use Claude, with a fix for anything that's wrong. Include its output when you open an
+issue; it never shows your API key.
 
 ## 🔮 Séance
 
@@ -81,7 +126,11 @@ story. GitGotchi reads only `ANTHROPIC_API_KEY` from `.env` and ignores everythi
 | `gitgotchi haunt` | Live pane that reacts to every commit |
 | `gitgotchi status` | Your companion and its stats |
 | `gitgotchi seance` | Ghost stories from your repo's history |
-| `gitgotchi card` | Save a shareable PNG |
+| `gitgotchi card` | Save a shareable card (`--gif` for an animated one) |
+| `gitgotchi badge` | Save a README badge with your companion's portrait |
+| `gitgotchi-statusline` | One line for Claude Code, tmux or Starship |
+| `gitgotchi config` | How much the hook prints: `full`, `line` or `off` |
+| `gitgotchi doctor` | Check your setup and get fixes |
 | `gitgotchi evolve` | Evolution paths and progress |
 | `gitgotchi pet` | Give it some affection |
 | `gitgotchi name <name>` | Name your companion |

@@ -317,29 +317,62 @@ def adopt(
 
 @app.command()
 def card(
-    output: Path = typer.Option(Path("gitgotchi-card.png"), "--output", "-o", help="Where to save the PNG"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Where to save it (default gitgotchi-card.png, or .gif with --gif)"),
     scale: int = typer.Option(5, help="Pixel size; 5 gives 1200x630"),
+    gif: bool = typer.Option(False, "--gif", help="Save an animated GIF (needs: pip install 'gitgotchi[gif]')"),
 ):
-    """Save a shareable card of your companion as a PNG."""
+    """Save a shareable card of your companion."""
     from gitgotchi.paths import require_repo
-    from gitgotchi.render.card import make_card
+    from gitgotchi.render.card import make_card, make_card_gif
     from gitgotchi.render.scene import encode_png, upscale
     from gitgotchi.render.terminal import graphics_protocol, inline_image
 
     state_manager = load_state()
     stats = state_manager.get_pet_state()
     repo_name = Path(require_repo().working_tree_dir).name
-
-    image = make_card(stats, repo_name, state_manager.agent_counts())
+    agents = state_manager.agent_counts()
     scale = max(1, min(12, scale))
-    output.write_bytes(encode_png(upscale(image, scale)))
+    output = output or Path("gitgotchi-card.gif" if gif else "gitgotchi-card.png")
+
+    image = make_card(stats, repo_name, agents)
+    if gif:
+        try:
+            data = make_card_gif(stats, repo_name, agents, scale=scale)
+        except ImportError:
+            render_error("Animated cards need Pillow: pip install 'gitgotchi[gif]'")
+            raise typer.Exit(1)
+        output.write_bytes(data)
+    else:
+        output.write_bytes(encode_png(upscale(image, scale)))
 
     protocol = graphics_protocol()
     if protocol and console.is_terminal:
         console.file.write(inline_image(image, min(console.width - 2, 96), protocol))
         console.file.flush()
-    console.print(Text(f"\n🖼️  Saved {output} ({image.shape[1] * scale}x{image.shape[0] * scale})", style=theme.ORANGE))
+    size = f"{image.shape[1] * scale}x{image.shape[0] * scale}"
+    console.print(Text(f"\n🖼️  Saved {output} ({size})", style=theme.ORANGE))
     console.print(Text("Share it, and tag the spirits that wrote your code.\n", style=theme.DIM))
+
+
+@app.command()
+def badge(
+    output: Path = typer.Option(Path("gitgotchi-badge.svg"), "--output", "-o", help="Where to save the SVG"),
+):
+    """Save a README badge with your companion's portrait and form."""
+    from gitgotchi.render.badge import make_badge
+
+    from gitgotchi.paths import require_repo
+
+    stats = load_state().get_pet_state()
+    output.write_text(make_badge(stats), encoding="utf-8")
+    root = Path(require_repo().working_tree_dir).resolve()
+    try:
+        link = output.resolve().relative_to(root).as_posix()
+    except ValueError:  # saved outside the repo
+        link = output.as_posix()
+    console.print(Text(f"\n🏷️  Saved {output}. Commit it and add this to your README:", style=theme.ORANGE))
+    console.print(Text(f"[![GitGotchi]({link})](https://github.com/Srikarmk/Gitgotchi)\n", style=theme.BONE))
+    console.print(Text("Run `gitgotchi badge` again whenever your companion evolves.\n", style=theme.DIM))
 
 
 @app.command()
@@ -370,6 +403,86 @@ def demo():
         raise typer.Exit(1)
     run_demo()
     console.print(Text("🎃 That's GitGotchi. Run `gitgotchi install` in a real repo to adopt your own.", style=theme.ORANGE))
+
+
+@app.command()
+def config(
+    output: Optional[str] = typer.Argument(None, help="full, line or off"),
+    global_: bool = typer.Option(False, "--global", help="Set it for every repo instead of this one"),
+):
+    """Choose how much the hook prints after each commit.
+
+    full: the whole pet (default). line: one line. off: nothing.
+    Stored in git config as gitgotchi.output.
+    """
+    from gitgotchi.hooks.post_commit import configured_output
+    from gitgotchi.paths import find_repo
+    from gitgotchi.pet.renderer import OUTPUT_STYLES
+
+    repo = find_repo()
+    if output is None:
+        if repo is None:
+            render_error("No git repository found here. Run `git init` first.")
+            raise typer.Exit(1)
+        console.print(Text(f"gitgotchi.output = {configured_output(repo)}", style=theme.ORANGE))
+        return
+
+    output = output.strip().lower()
+    if output not in OUTPUT_STYLES:
+        render_error(f"Pick one of: {', '.join(OUTPUT_STYLES)}")
+        raise typer.Exit(1)
+    if not global_ and repo is None:
+        render_error("No git repository here. Use --global to set it everywhere.")
+        raise typer.Exit(1)
+
+    if global_:
+        from git import Git
+
+        Git().config("--global", "gitgotchi.output", output)
+    else:
+        repo.git.config("gitgotchi.output", output)
+    where = "every repo" if global_ else "this repo"
+    console.print(Text(f"🕯️  Hook output set to {output} for {where}.", style=theme.ORANGE))
+
+
+@app.command()
+def doctor():
+    """Check your setup and explain how to fix anything that's wrong."""
+    from gitgotchi.doctor import FAIL, WARN, run_checks
+
+    checks = run_checks(console)
+    marks = {"ok": ("✓", theme.GREEN), WARN: ("!", theme.ORANGE), FAIL: ("✗", theme.BLOOD)}
+    table = Table.grid(padding=(0, 2))
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True, style="bold")
+    table.add_column()
+    for check in checks:
+        mark, color = marks[check.status]
+        detail = Text(check.detail, overflow="fold")
+        if check.fix and check.status != "ok":
+            detail.append(f"\n→ {check.fix}", style=color)
+        table.add_row(Text(mark, style=f"bold {color}"), check.name, detail)
+    console.print(Panel(table, title="🩺 GitGotchi doctor", border_style=theme.PURPLE, expand=False))
+
+    failures = [c for c in checks if c.status == FAIL]
+    if failures:
+        console.print(Text(f"{len(failures)} problem{'s' if len(failures) > 1 else ''} to fix.", style=theme.BLOOD))
+        raise typer.Exit(1)
+    console.print(Text("Everything needed is working.", style=theme.GREEN))
+
+
+@app.command()
+def statusline(
+    plain: bool = typer.Option(False, "--plain", help="No colors (for tmux or Starship)"),
+    setup: bool = typer.Option(False, "--setup", help="Show how to add it to Claude Code, tmux and Starship"),
+):
+    """Print one line about your companion, for status bars and prompts.
+
+    For status bars, use the faster `gitgotchi-statusline` command instead.
+    """
+    from gitgotchi.statusline import main
+
+    raise typer.Exit(main((["--plain"] if plain else []) + (["--setup"] if setup else [])))
 
 
 @app.command()

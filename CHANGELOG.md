@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+### New
+
+- `gitgotchi-statusline`: one line about your companion for Claude Code's status line, tmux or
+  Starship. It uses only the standard library, so it runs in about 50 ms, and prints nothing outside
+  a haunted repo. `gitgotchi statusline --setup` shows the config snippets.
+- `gitgotchi badge`: an SVG README badge with a pixel portrait of your companion and its form.
+- `gitgotchi config full|line|off [--global]`: choose how much the hook prints after each commit.
+- `gitgotchi doctor`: checks git, the hook and its Python, the database, your terminal and the
+  API key, with a fix for each problem. It never prints the key.
+- `gitgotchi card --gif`: an animated card (install `gitgotchi[gif]` for Pillow).
+
 ## 0.3.2
 
 ### Sharper sprites
