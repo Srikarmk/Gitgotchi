@@ -43,3 +43,15 @@ def test_interact_raises_friendship_up_to_ten():
     for _ in range(50):
         stats.interact()
     assert stats.friend_level == 10
+
+
+def test_petting_wakes_a_dormant_pet_until_the_next_check():
+    stats = PetStats()
+    stats.last_fed = datetime.now() - timedelta(days=10)
+    stats.update_mood()
+    assert stats.current_mood == PetMood.SLEEPING
+
+    assert stats.interact() is True
+    assert stats.friend_level == 1.5
+    stats.update_mood()  # what the next `status` does
+    assert stats.current_mood == PetMood.HUNGRY

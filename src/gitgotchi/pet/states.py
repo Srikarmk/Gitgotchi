@@ -6,6 +6,10 @@ from typing import Optional, Sequence
 from gitgotchi.pet.quality import score_commit, update_quality
 
 
+# How long a visit keeps a starving pet awake
+VISIT_HOURS = 6
+
+
 class PetMood(Enum):
     """Pet mood states - Stardew Valley inspired friendly moods."""
 
@@ -48,6 +52,7 @@ class PetStats:
         self.pet_name: str = "Spirit"
         self.created_at: datetime = datetime.now()
         self.ai_commits: int = 0
+        self.last_visit: Optional[datetime] = None
 
     @property
     def possession(self) -> float:
@@ -55,8 +60,14 @@ class PetStats:
         return self.ai_commits / self.total_commits if self.total_commits else 0.0
 
     def update_mood(self) -> None:
-        """Update pet mood based on current stats and time."""
+        """Update pet mood based on current stats and time.
+
+        Hunger follows the last commit. A recent visit (`gitgotchi pet`) keeps
+        a starving pet awake, though still hungry.
+        """
         hours_since_fed = (datetime.now() - self.last_fed).total_seconds() / 3600
+        if self.last_visit and (datetime.now() - self.last_visit).total_seconds() < VISIT_HOURS * 3600:
+            hours_since_fed = min(hours_since_fed, 72)
 
         if hours_since_fed > 168:  # 7 days
             self.current_mood = PetMood.SLEEPING
@@ -146,16 +157,8 @@ class PetStats:
         Returns:
             True if the pet was woken up
         """
-        if self.current_mood == PetMood.SLEEPING:
-            self.current_mood = PetMood.CONTENT
-            return True
-
-        # Improve mood slightly
-        if self.current_mood == PetMood.TIRED:
-            self.current_mood = PetMood.CONTENT
-        elif self.current_mood == PetMood.HUNGRY:
-            self.current_mood = PetMood.CONTENT
-
-        # Increase friendship
+        was_asleep = self.current_mood in (PetMood.SLEEPING, PetMood.TIRED)
+        self.last_visit = datetime.now()
         self.friend_level = min(10, self.friend_level + 0.5)
-        return False
+        self.update_mood()
+        return was_asleep
