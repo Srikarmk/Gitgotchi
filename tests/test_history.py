@@ -60,7 +60,7 @@ def test_reset_keeps_name(repo):
 
 
 def test_upgrades_database_from_0_2(repo):
-    db = Path(repo.working_tree_dir) / ".gitgotchi" / "state.db"
+    db = Path(repo.git_dir) / "gitgotchi" / "state.db"
     db.parent.mkdir()
     engine = create_engine(f"sqlite:///{db}")
     with engine.begin() as conn:

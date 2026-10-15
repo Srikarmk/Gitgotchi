@@ -1,13 +1,18 @@
 """Hook installation."""
+import re
+import shlex
 import sys
 from pathlib import Path
 
 from git import Repo
 from rich.console import Console
+from rich.text import Text
 
-from gitgotchi.paths import find_repo, ignore_state_dir
+from gitgotchi.paths import find_repo
 
 console = Console()
+
+SHELL_SHEBANG = re.compile(r"\b(sh|bash|zsh|dash|ksh|ash)\b")
 
 HOOK_START = "# >>> gitgotchi >>>"
 HOOK_END = "# <<< gitgotchi <<<"
@@ -29,10 +34,10 @@ def hooks_dir(repo: Repo) -> Path:
 
 def hook_block() -> str:
     """Shell snippet that feeds the pet from this Python environment."""
-    python_path = sys.executable.replace("\\", "/")
+    python_path = shlex.quote(sys.executable.replace("\\", "/"))
     return (
         f"{HOOK_START}\n"
-        f'GITGOTCHI_PYTHON="{python_path}"\n'
+        f"GITGOTCHI_PYTHON={python_path}\n"
         'if [ -x "$GITGOTCHI_PYTHON" ]; then\n'
         '    "$GITGOTCHI_PYTHON" -m gitgotchi.hooks.post_commit\n'
         "fi\n"
@@ -99,19 +104,28 @@ def install_hooks() -> bool:
     if is_empty_hook(others):
         others = "#!/bin/sh\n"
     elif not already_installed:
-        console.print(
-            "[yellow]⚠️  Existing post-commit hook found. Appending GitGotchi...[/yellow]"
-        )
+        console.print("[yellow]⚠️  Existing post-commit hook found. Adding GitGotchi to it...[/yellow]")
 
-    post_commit_path.write_text(others + "\n" + hook_block())
+    shebang, _, rest = others.partition("\n") if others.startswith("#!") else ("#!/bin/sh", "\n", others)
+    if not SHELL_SHEBANG.search(shebang):
+        console.print(
+            Text(
+                f"Your post-commit hook isn't a shell script ({shebang}), so GitGotchi can't add "
+                f"itself. Have it run:\n  {shlex.quote(sys.executable)} -m gitgotchi.hooks.post_commit",
+                style="yellow",
+            )
+        )
+        return False
+
+    # Right after the shebang, so an `exit` later in the hook can't skip us
+    post_commit_path.write_text(shebang + "\n" + hook_block() + rest)
     post_commit_path.chmod(0o755)
-    ignore_state_dir(repo)
 
     if already_installed:
         console.print("[green]✨ GitGotchi hooks updated![/green]")
     else:
         console.print("[green]✨ GitGotchi hooks installed successfully![/green]")
-    console.print(f"[dim]Hook location: {post_commit_path}[/dim]")
+    console.print(Text(f"Hook location: {post_commit_path}", style="dim"))
 
     return True
 

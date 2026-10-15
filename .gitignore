@@ -24,3 +24,6 @@ dist/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Website images are copied from docs/ at deploy time
+site/assets/

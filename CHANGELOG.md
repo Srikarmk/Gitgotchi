@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed
+
+- **Security:** GitGotchi loaded every variable from a repo's `.env` file, so a cloned repo could
+  inject git settings and run commands during `gitgotchi seance`. Now only `ANTHROPIC_API_KEY` is read.
+- AI-agent detection no longer flags people: co-authors at Anthropic, OpenAI or Gemini, anyone named
+  Cline, or messages that merely mention ChatGPT. It now matches agent noreply addresses and bot accounts.
+- The pet now lives in `.git/gitgotchi/`, so every worktree of a repo shares one pet (agents often
+  commit from worktrees). Existing pets are moved there automatically.
+- `haunt` watches every local branch, doesn't feed commits that arrive by pull, groups bursts of
+  commits into one reaction, keeps running through a busy database, and no longer crashes on
+  brackets in commit messages.
+- Amending a commit no longer counts it again.
+- Running `adopt` while a commit is being processed could lose an update; writes are now atomic.
+- `adopt` on an existing pet no longer puts it to sleep.
+- The séance handles non-ASCII file names, renamed files, and more TODOs in big repos; the
+  witching hour uses each author's own timezone.
+- Petting a dormant pet now really wakes it, and friendship grows even while it sleeps.
+- The hook works when Python's path contains spaces or shell characters, runs before any `exit` in
+  an existing hook, and refuses to edit non-shell hooks.
+- Repos in folders with `?` or `%` in their path work.
+- `gitgotchi name` rejects empty and very long names; `card` reports the size it actually saved;
+  `adopt --limit` must be at least 1.
+- Requires `typer>=0.15.4`: older versions crash with current `click`.
+
 ## 0.3.0 - Halloween
 
 ### New

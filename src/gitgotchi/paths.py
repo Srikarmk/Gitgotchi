@@ -1,10 +1,11 @@
 """Locate the git repository and GitGotchi's state inside it."""
+import shutil
 from pathlib import Path
 from typing import Optional
 
 from git import InvalidGitRepositoryError, NoSuchPathError, Repo
 
-STATE_DIR = ".gitgotchi"
+LEGACY_STATE_DIR = ".gitgotchi"
 
 
 class NotInRepositoryError(RuntimeError):
@@ -38,24 +39,23 @@ def require_repo(path: str = ".") -> Repo:
 
 
 def state_db_path(repo: Repo) -> Path:
-    """Path to the pet database, always at the root of the working tree."""
-    return Path(repo.working_tree_dir) / STATE_DIR / "state.db"
+    """Path to the pet database.
 
-
-def ignore_state_dir(repo: Repo) -> None:
-    """Keep .gitgotchi/ out of `git status` using the repo-local exclude file.
-
-    .git/info/exclude is never committed, so this doesn't touch the user's
-    .gitignore.
+    It lives in the shared git directory, so every worktree of a repo feeds
+    the same pet and the database can never be committed. Pets created by
+    0.3.0 and earlier (in <worktree>/.gitgotchi/) are moved there.
     """
-    exclude = Path(repo.common_dir) / "info" / "exclude"
-    entry = f"/{STATE_DIR}/"
-    existing = exclude.read_text() if exclude.exists() else ""
-    if entry in existing.splitlines():
-        return
-
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    with open(exclude, "a") as f:
-        if existing and not existing.endswith("\n"):
-            f.write("\n")
-        f.write(entry + "\n")
+    path = Path(repo.common_dir) / "gitgotchi" / "state.db"
+    legacy = Path(repo.working_tree_dir) / LEGACY_STATE_DIR / "state.db"
+    if legacy.exists() and not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(str(legacy), str(path))
+        except OSError:
+            # Still open somewhere (an old `haunt`, on Windows); move it next time
+            return legacy
+        try:
+            legacy.parent.rmdir()
+        except OSError:
+            pass  # something else is in there; leave it alone
+    return path

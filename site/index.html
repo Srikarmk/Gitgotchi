@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GitGotchi</title>
+<meta name="description" content="A 3D pixel-art spirit that haunts your git repo and reacts as you, and your AI agents, commit.">
+<meta property="og:title" content="GitGotchi">
+<meta property="og:description" content="Your terminal is haunted now. A pixel-art spirit that watches every commit land, including the ones your AI agents write.">
+<meta property="og:image" content="https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one centered column of night-sky sections; the hero pairs the pitch with a live terminal. */
+:root {
+  --night: #120a1f;
+  --dusk: #1c1230;
+  --grave: #2a1c42;
+  --ink: #ece4f7;
+  --mist: #a596bd;
+  --pumpkin: #ff8c1a;
+  --pumpkin-soft: #ffb15c;
+  --spectral: #6ff5e0;
+  --rule: #3a2a52;
+
+  --display: "Pixelify Sans", "Courier New", monospace;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.125rem;
+  --step-2: 1.5rem;
+  --step-3: 2.25rem;
+  --step-4: clamp(2.5rem, 6vw, 3.75rem);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--night); }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1px 1px at 12% 18%, #fff8 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 9%, #fff6 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 26%, #ffe9c488 50%, transparent 51%),
+    radial-gradient(1px 1px at 33% 41%, #fff5 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 52%, #fff5 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 66%, #fff4 50%, transparent 51%),
+    linear-gradient(180deg, var(--night) 0%, #1a0f2d 55%, var(--night) 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font: 400 var(--step-0)/1.6 var(--body);
+  padding-inline: 20px;
+  padding-block: 0 48px;
+}
+
+a { color: var(--pumpkin-soft); text-underline-offset: 3px; }
+a:hover { color: var(--pumpkin); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--pumpkin); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { max-width: 1080px; margin-inline: auto; }
+
+/* Top bar */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 20px;
+}
+.brand {
+  font: 700 var(--step-2)/1 var(--display);
+  color: var(--pumpkin);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.top nav { display: flex; gap: 20px; flex-wrap: wrap; }
+.top nav a { color: var(--mist); text-decoration: none; font-size: var(--step--1); }
+.top nav a:hover { color: var(--ink); }
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 48px;
+  align-items: center;
+  padding-block: 32px 64px;
+}
+.hero > * { min-width: 0; }
+.eyebrow {
+  font: 600 var(--step--1)/1 var(--mono);
+  color: var(--mist);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 18px;
+}
+h1 {
+  font: 700 var(--step-4)/1.05 var(--display);
+  margin: 0 0 20px;
+  text-wrap: balance;
+}
+h1 em { font-style: normal; color: var(--pumpkin); }
+.lede { font-size: var(--step-1); color: var(--mist); max-width: 34rem; margin: 0 0 28px; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+.install {
+  display: grid;
+  gap: 2px;
+  background: var(--grave);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 6px;
+  max-width: 30rem;
+}
+.cmd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font: 400 var(--step-0)/1.4 var(--mono);
+  background: var(--night);
+  min-width: 0;
+}
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; }
+.cmd .prompt { color: var(--pumpkin); user-select: none; }
+.copy {
+  font: 600 var(--step--1)/1 var(--body);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.copy:hover { border-color: var(--pumpkin); }
+.install-note { font-size: var(--step--1); color: var(--mist); margin: 12px 0 0; }
+
+.terminal {
+  background: #0b0613;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px -30px #ff8c1a33, 0 0 0 1px #00000040;
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--dusk);
+  border-bottom: 1px solid var(--rule);
+  font: 400 0.8rem/1 var(--mono);
+  color: var(--mist);
+}
+.dot { width: 11px; height: 11px; border-radius: 50%; background: var(--rule); }
+.terminal-bar span:last-child { margin-left: 8px; }
+.terminal img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+.terminal figcaption {
+  padding: 12px 16px;
+  font: 400 0.82rem/1.5 var(--mono);
+  color: var(--mist);
+  border-top: 1px solid var(--rule);
+}
+.terminal figcaption b { color: var(--spectral); font-weight: 600; }
+.terminal figcaption i { color: var(--pumpkin-soft); font-style: normal; }
+
+/* Sections */
+section { padding-block: 56px; border-top: 1px solid var(--rule); }
+h2 {
+  font: 700 var(--step-3)/1.1 var(--display);
+  margin: 0 0 14px;
+  text-wrap: balance;
+}
+.section-lede { color: var(--mist); max-width: 40rem; margin: 0 0 32px; font-size: var(--step-1); }
+
+/* Forms */
+.lineup {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow-x: auto;
+  background: #0b0613;
+}
+.lineup img { display: block; min-width: 760px; width: 100%; image-rendering: pixelated; }
+.paths {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  margin: 24px 0 0;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.path { background: var(--night); padding: 16px 18px; display: grid; gap: 4px; }
+.path dt { font: 700 var(--step-1)/1.2 var(--display); }
+.path dd { margin: 0; color: var(--mist); font-size: var(--step--1); }
+.path.agent dt { color: var(--spectral); }
+
+/* Possession */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+.split > * { min-width: 0; }
+.commit {
+  margin: 0;
+  background: #0b0613;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 18px 20px;
+  font: 400 0.9rem/1.7 var(--mono);
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--mist);
+}
+.commit .k { color: var(--pumpkin-soft); }
+.commit .subject { color: var(--ink); }
+.commit .trailer { color: var(--spectral); }
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+  font: 500 var(--step--1)/1.4 var(--mono);
+  color: var(--spectral);
+}
+.verdict::before {
+  content: "";
+  width: 8px; height: 8px;
+  background: var(--spectral);
+  box-shadow: 0 0 12px var(--spectral);
+}
+.agents { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; padding: 0; list-style: none; }
+.agents li {
+  font: 500 var(--step--1)/1 var(--mono);
+  color: var(--spectral);
+  border: 1px solid #6ff5e044;
+  border-radius: 999px;
+  padding: 7px 12px;
+}
+.fine { color: var(--mist); font-size: var(--step--1); margin: 18px 0 0; max-width: 34rem; }
+
+/* Commands */
+.commands { display: grid; gap: 0; margin: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.command {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px 20px;
+  background: var(--night);
+}
+.command + .command { border-top: 1px solid var(--rule); }
+.command dt { font: 600 var(--step-0)/1.5 var(--mono); color: var(--pumpkin-soft); white-space: nowrap; }
+.command dd { margin: 0; color: var(--ink); }
+.command dd span { color: var(--mist); }
+
+/* Card */
+.card-shot {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  image-rendering: pixelated;
+}
+.card-copy p { color: var(--mist); margin: 0 0 16px; }
+
+/* Quality */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: var(--step-0); }
+th, td { text-align: left; padding: 12px 18px; border-bottom: 1px solid var(--rule); }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 var(--step--1)/1.2 var(--mono); color: var(--mist); letter-spacing: 0.06em; text-transform: uppercase; background: var(--dusk); }
+td.pts { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; width: 7rem; }
+td.pts.up { color: #8bd450; }
+td.pts.down { color: #ff7a7a; }
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--rule);
+  padding-block: 28px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  justify-content: space-between;
+  color: var(--mist);
+  font-size: var(--step--1);
+}
+footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .split { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .command { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+@media (max-width: 480px) {
+  body { padding-inline: 16px; }
+  .top nav { gap: 14px; }
+  section { padding-block: 44px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="brand" href="#">GitGotchi</a>
+    <nav aria-label="Primary">
+      <a href="#forms">Forms</a>
+      <a href="#possession">Possession</a>
+      <a href="#commands">Commands</a>
+      <a href="https://github.com/Srikarmk/Gitgotchi">GitHub</a>
+      <a href="https://pypi.org/project/gitgotchi/">PyPI</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">A pet for your git repo</p>
+        <h1>Your terminal is <em>haunted</em> now.</h1>
+        <p class="lede">
+          AI agents write a lot of the commits these days. GitGotchi is the little spirit that lives in your
+          repo and watches them land. <strong>Every commit feeds it</strong>, clean ones grow an Angel,
+          chaotic ones a Demon, and if the agents write most of your code it turns into a Poltergeist.
+        </p>
+        <div class="install" role="group" aria-label="Install">
+          <div class="cmd"><span class="prompt" aria-hidden="true">$</span><code id="cmd-install">pip install gitgotchi</code><button class="copy" type="button" data-copy="cmd-install">Copy</button></div>
+          <div class="cmd"><span class="prompt" aria-hidden="true">$</span><code id="cmd-demo">gitgotchi demo</code><button class="copy" type="button" data-copy="cmd-demo">Copy</button></div>
+        </div>
+        <p class="install-note">Python 3.10+ and git. <code>demo</code> runs in a throwaway repo, so you can watch a pumpkin grow into a Poltergeist in about thirty seconds.</p>
+      </div>
+
+      <figure class="terminal" style="margin:0">
+        <div class="terminal-bar" aria-hidden="true"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>gitgotchi haunt</span></div>
+        <img src="assets/haunt.gif" width="384" height="288" alt="A pixel-art pumpkin hops, eats a commit, evolves into a ghost, glitches when an AI agent commits, and becomes a Poltergeist with keycaps orbiting it.">
+        <figcaption><i>feat: light a candle inside the pumpkin</i> &nbsp;Co-Authored-By: <b>Claude</b> &rarr; possessed</figcaption>
+      </figure>
+    </div>
+
+    <section id="forms" aria-labelledby="forms-title">
+      <h2 id="forms-title">Seven forms, all real 3D</h2>
+      <p class="section-lede">
+        Each form is a 3D model built from signed distance fields, raymarched with numpy and cel-shaded into
+        pixel art. In the terminal it's drawn with true-color half blocks, so it bobs, blinks and spins in
+        practically any modern terminal.
+      </p>
+      <div class="lineup">
+        <img src="assets/forms.png" width="1904" height="240" alt="The seven forms side by side: Pumpkin, Ghost, Angel, Demon, Zombie, Wraith and Poltergeist.">
+      </div>
+      <dl class="paths">
+        <div class="path"><dt>Pumpkin</dt><dd>Where every companion starts</dd></div>
+        <div class="path"><dt>Ghost</dt><dd>3 commits</dd></div>
+        <div class="path"><dt>Angel</dt><dd>6+ commits, quality above 70</dd></div>
+        <div class="path"><dt>Demon</dt><dd>6+ commits, quality below 30</dd></div>
+        <div class="path"><dt>Zombie</dt><dd>4 or more reverts</dd></div>
+        <div class="path"><dt>Wraith</dt><dd>15 commits, the ultimate form</dd></div>
+        <div class="path agent"><dt>Poltergeist</dt><dd>6+ commits, at least half written by AI agents</dd></div>
+      </dl>
+    </section>
+
+    <section id="possession" aria-labelledby="possession-title">
+      <div class="split">
+        <div>
+          <h2 id="possession-title">It knows who wrote the commit</h2>
+          <p class="section-lede" style="margin-bottom:0">
+            GitGotchi reads <code>Co-Authored-By</code> trailers, "Generated with" footers and bot accounts.
+            Agent commits still feed your companion, and they also fill its possession meter.
+          </p>
+          <ul class="agents" aria-label="Agents it recognises">
+            <li>Claude</li><li>Copilot</li><li>Codex</li><li>Cursor</li><li>Devin</li>
+            <li>Aider</li><li>Gemini</li><li>Windsurf</li><li>Cline</li><li>Amp</li>
+          </ul>
+          <p class="fine">
+            It matches agent addresses and bot accounts, never bare names, so a teammate called Claude or a
+            co-author at an AI lab counts as a human. When an agent runs <code>git commit</code> without a
+            terminal, the hook prints one line so it doesn't flood the agent's context.
+          </p>
+        </div>
+        <div>
+<pre class="commit"><span class="k">commit</span> 4f9c2e1
+<span class="k">Author:</span> You &lt;you@example.com&gt;
+
+    <span class="subject">feat: hang a haunted lantern on the porch</span>
+
+    <span class="trailer">Co-Authored-By: Claude Opus 5.5 &lt;noreply@anthropic.com&gt;</span></pre>
+          <p class="verdict">Pumpkin felt a chill. Claude wrote this one</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="commands" aria-labelledby="commands-title">
+      <h2 id="commands-title">Live next to your agent</h2>
+      <p class="section-lede">Keep <code>haunt</code> open in a split beside the terminal where you or your agent are working.</p>
+      <dl class="commands">
+        <div class="command"><dt>gitgotchi install</dt><dd>Adds the post-commit hook. <span>Your other hooks are kept.</span></dd></div>
+        <div class="command"><dt>gitgotchi adopt</dt><dd>Raises your companion on the history you already have. <span>Thousands of commits replay in under a second.</span></dd></div>
+        <div class="command"><dt>gitgotchi haunt</dt><dd>A live pane that reacts to every commit as it lands. <span>It watches every branch and worktree, and ignores commits that arrive by pull.</span></dd></div>
+        <div class="command"><dt>gitgotchi seance</dt><dd>Digs up your repo's ghosts: the oldest TODO, the file nobody has opened in ages, commits made between midnight and 4am. <span>Claude tells the story if you set an API key.</span></dd></div>
+        <div class="command"><dt>gitgotchi card</dt><dd>Saves a 1200&times;630 card of your companion to share.</dd></div>
+        <div class="command"><dt>gitgotchi status</dt><dd>Your companion, its mood, quality and possession.</dd></div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="card-title">
+      <div class="split">
+        <img class="card-shot" src="assets/card.png" width="1200" height="630" alt="A shareable card: Pumpkin the Poltergeist, 1,284 commits, quality 74, 63% possessed, Claude 612 and Copilot 197.">
+        <div class="card-copy">
+          <h2 id="card-title">Show off your spirit</h2>
+          <p><code>gitgotchi card</code> draws your companion's form and stats into a PNG, pixel font and all, sized for link previews.</p>
+          <p>Run it in a repo you've adopted to see what your history grew into, and how much of it the agents wrote.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="quality-title">
+      <h2 id="quality-title">What it likes to eat</h2>
+      <p class="section-lede">Every commit gets a score, and your companion's quality drifts toward it. Merge commits don't count. Skip a day and it gets hungry; after a week it goes dormant.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Commit</th><th scope="col" style="text-align:right">Points</th></tr></thead>
+          <tbody>
+            <tr><td>Descriptive message</td><td class="pts up">+15</td></tr>
+            <tr><td>Touches tests</td><td class="pts up">+10</td></tr>
+            <tr><td>Conventional prefix (<code>feat:</code>, <code>fix:</code>)</td><td class="pts up">+5</td></tr>
+            <tr><td>Reasonable size</td><td class="pts up">+5</td></tr>
+            <tr><td>Revert</td><td class="pts down">&minus;10</td></tr>
+            <tr><td>Huge commit (over 500 lines)</td><td class="pts down">&minus;15</td></tr>
+            <tr><td>Vague message (<code>fix</code>, <code>wip</code>, <code>update code</code>)</td><td class="pts down">&minus;30</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>GitGotchi is open source under the MIT license.</span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/Srikarmk/Gitgotchi">Source</a>
+      <a href="https://pypi.org/project/gitgotchi/">PyPI</a>
+      <a href="https://github.com/Srikarmk/Gitgotchi/blob/main/CHANGELOG.md">Changelog</a>
+    </nav>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll(".copy").forEach(function (button) {
+  button.addEventListener("click", function () {
+    var source = document.getElementById(button.dataset.copy);
+    var text = source.textContent;
+    function done(label) {
+      button.textContent = label;
+      setTimeout(function () { button.textContent = "Copy"; }, 1600);
+    }
+    function selectIt() {
+      var range = document.createRange();
+      range.selectNodeContents(source);
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      done("Press ⌘C");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done("Copied"); }, selectIt);
+    } else {
+      selectIt();
+    }
+  });
+});
+</script>
+</body>
+</html>

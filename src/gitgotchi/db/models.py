@@ -2,7 +2,8 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Float, Integer, String, Text, create_engine, inspect, text
+from sqlalchemy import Float, Integer, String, Text, create_engine, event, inspect, text
+from sqlalchemy.engine import URL, Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -28,6 +29,7 @@ class PetState(Base):
     evolution_points: Mapped[int] = mapped_column(Integer, default=0)
     friend_level: Mapped[float] = mapped_column(Float, default=1.0)
     ai_commits: Mapped[int] = mapped_column(Integer, default=0)
+    last_visit: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     last_fed: Mapped[datetime] = mapped_column(default=datetime.now)
     current_mood: Mapped[str] = mapped_column(String(20), default="content")
     current_form: Mapped[str] = mapped_column(String(20), default="egg")
@@ -72,25 +74,31 @@ class StoryMemory(Base):
     tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
 
-def get_engine(db_path: str = ".gitgotchi/state.db"):
-    """Create database engine.
+def get_engine(db_path: str) -> Engine:
+    """Create the database engine.
 
-    Args:
-        db_path: Path to SQLite database file
-
-    Returns:
-        SQLAlchemy engine instance
+    Every transaction takes SQLite's write lock up front (BEGIN IMMEDIATE),
+    so the hook, haunt and adopt can't interleave a read-modify-write of the
+    pet and lose an update. Waiters retry for up to 15 seconds.
     """
-    return create_engine(f"sqlite:///{db_path}", echo=False)
+    engine = create_engine(
+        URL.create("sqlite", database=str(db_path)),
+        connect_args={"timeout": 15},
+    )
+
+    @event.listens_for(engine, "connect")
+    def _no_implicit_transactions(dbapi_connection, _record):
+        dbapi_connection.isolation_level = None
+
+    @event.listens_for(engine, "begin")
+    def _begin_immediate(conn):
+        conn.exec_driver_sql("BEGIN IMMEDIATE")
+
+    return engine
 
 
-def init_db(db_path: str = ".gitgotchi/state.db") -> None:
-    """Initialize database schema.
-
-    Args:
-        db_path: Path to SQLite database file
-    """
-    engine = get_engine(db_path)
+def init_db(engine: Engine) -> None:
+    """Create the schema, upgrading older databases in place."""
     Base.metadata.create_all(engine)
     add_missing_columns(engine)
 
@@ -99,13 +107,16 @@ def init_db(db_path: str = ".gitgotchi/state.db") -> None:
 ADDED_COLUMNS = [
     ("pet_state", "ai_commits", "INTEGER NOT NULL DEFAULT 0"),
     ("commit_history", "agent", "VARCHAR(50)"),
+    ("pet_state", "last_visit", "DATETIME"),
 ]
 
 
 def add_missing_columns(engine) -> None:
     """Upgrade databases created by older versions in place."""
-    inspector = inspect(engine)
+    # Inspect on the same connection: every transaction holds the write lock,
+    # so a second connection would wait on this one
     with engine.begin() as conn:
+        inspector = inspect(conn)
         for table, column, ddl in ADDED_COLUMNS:
             existing = {c["name"] for c in inspector.get_columns(table)}
             if column not in existing:

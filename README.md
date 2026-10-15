@@ -32,7 +32,9 @@ gitgotchi haunt     # open the live pane
 ```
 
 Keep `gitgotchi haunt` open in a split next to the terminal where you or your agent are working. Every
-commit gets a reaction, agent commits glitch the screen, and evolutions play out live.
+commit gets a reaction, agent commits glitch the screen, and evolutions play out live. It watches every
+local branch, so it sees commits from other worktrees too. Commits that arrive by `git pull` aren't yours,
+so they don't feed your companion.
 
 ![The haunt pane reacting to commits](https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/haunt.gif)
 
@@ -65,7 +67,9 @@ gitgotchi seance
 Your companion digs through the history for its ghosts: the oldest TODO still in the code, the file
 nobody has opened in ages, the biggest deletion, commits made between midnight and 4am, and the first
 commit an AI agent wrote. Then it tells you a story about them. Set `ANTHROPIC_API_KEY` (or put it in a
-`.env` file) to have Claude tell it; otherwise your companion tells it in its own words.
+`.env` file) to have Claude tell it; otherwise your companion tells it in its own words. With a key set,
+the findings (file names, TODO text and recent commit messages) are sent to the Anthropic API to write the
+story. GitGotchi reads only `ANTHROPIC_API_KEY` from `.env` and ignores everything else in it.
 
 ## 🎮 All commands
 
@@ -117,8 +121,9 @@ also shows the image inline in terminals that support it. Set `GITGOTCHI_GRAPHIC
 
 ## 🗂️ Where state lives
 
-Your companion is stored in `.gitgotchi/state.db` at the root of the repository. GitGotchi adds
-`.gitgotchi/` to `.git/info/exclude`, so it never shows up in `git status` and is never committed.
+Your companion lives in `.git/gitgotchi/state.db`, inside the repository's git directory. It never
+shows up in `git status`, can't be committed, and every `git worktree` of the repo shares the same pet, so
+commits your agents make in their own worktrees count too.
 
 ## 🛠️ Development
 

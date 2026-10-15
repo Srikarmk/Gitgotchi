@@ -7,16 +7,19 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Deque, List, Optional, Tuple
+from pathlib import Path
+from typing import Deque, List, Optional, Set, Tuple
 
-from git import Commit, Repo
+from git import Commit, GitCommandError, Repo
 from rich.console import Group
+from sqlalchemy.exc import OperationalError
 from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 from gitgotchi.db.state_manager import StateManager
+from gitgotchi.hooks.installer import has_gitgotchi, hooks_dir
 from gitgotchi.hooks.post_commit import feed_commit
 from gitgotchi.pet import theme
 from gitgotchi.pet.possession import detect_agent
@@ -30,6 +33,8 @@ POLL_SECONDS = 0.5
 # Give the post-commit hook a moment to feed the pet before we do it ourselves
 HOOK_GRACE_SECONDS = 1.5
 LOOP_SECONDS = 4.0
+# Reflog entries for commits created locally (not pulled or checked out)
+LOCAL_REFLOG_ACTIONS = ("commit", "cherry-pick", "revert")
 EVOLUTION_SECONDS = 2.6
 
 
@@ -51,43 +56,86 @@ class Haunting:
         self.grace = grace
         self.state = state_manager
         self.stats = state_manager.get_pet_state()
-        self.head = self._head()
+        self.tips = self._tips()
         self.pending: List[Tuple[Commit, float]] = []
         self.reactions: Deque[Reaction] = deque()
+        self.events = state_manager.get_recent_events(5)
         self.last_poll = 0.0
 
-    def _head(self) -> Optional[str]:
+    def _tips(self) -> Set[str]:
+        """Commits at the tip of every local branch and HEAD.
+
+        Watching every branch (not just HEAD) means commits an agent makes in
+        another worktree show up too.
+        """
         try:
-            return self.repo.head.commit.hexsha
+            output = self.repo.git.for_each_ref("--format=%(objectname)", "refs/heads")
+        except GitCommandError:
+            output = ""
+        tips = set(output.split())
+        try:
+            tips.add(self.repo.head.commit.hexsha)
         except ValueError:  # no commits yet
-            return None
+            pass
+        return tips
+
+    def _made_here(self) -> Set[str]:
+        """Commits created in this repo (any worktree), according to the reflogs."""
+        try:
+            output = self.repo.git.reflog("show", "--all", "--format=%H %gs")
+        except GitCommandError:
+            return set()
+        made = set()
+        for line in output.splitlines():
+            sha, _, subject = line.partition(" ")
+            if subject.startswith(LOCAL_REFLOG_ACTIONS):
+                made.add(sha)
+        return made
+
+    def _hook_installed(self) -> bool:
+        hook = hooks_dir(self.repo) / "post-commit"
+        return hook.exists() and has_gitgotchi(hook.read_text())
+
+    def _new_commits(self, tips: Set[str]) -> List[Commit]:
+        args = ["--reverse", "--max-count=50", *sorted(tips)]
+        if self.tips:
+            args += ["--not", *sorted(self.tips)]
+        try:
+            return [self.repo.commit(sha) for sha in self.repo.git.rev_list(*args).split()]
+        except GitCommandError:
+            return []
 
     def poll(self, now: float) -> None:
         if now - self.last_poll < POLL_SECONDS:
             return
         self.last_poll = now
 
-        head = self._head()
-        if head and head != self.head:
-            if self.head:
-                new = list(self.repo.iter_commits(f"{self.head}..{head}", max_count=50))
-            else:
-                new = [self.repo.head.commit]
-            self.pending.extend((c, now) for c in reversed(new))
-            self.head = head
+        tips = self._tips()
+        if tips != self.tips:
+            self.pending.extend((c, now) for c in self._new_commits(tips))
+            self.tips = tips
 
-        still_pending = []
+        if not self.pending:
+            return
+        hook = self._hook_installed()
+        made_here = None if hook else self._made_here()
+        ready, still_pending = [], []
         for commit, seen in self.pending:
             if self.state.has_commit(commit.hexsha):
-                self._react(commit, now)
+                ready.append(commit)
             elif now - seen > self.grace:
-                feed_commit(self.state, commit)
-                self._react(commit, now)
+                # A commit the hook didn't feed, or one the reflog says arrived
+                # by pull, merge or checkout, wasn't made here: not the pet's to eat
+                if not hook and commit.hexsha in made_here and feed_commit(self.state, commit):
+                    ready.append(commit)
             else:
                 still_pending.append((commit, seen))
         self.pending = still_pending
+        if ready:
+            self._react(ready, now)
+            self.events = self.state.get_recent_events(5)
 
-    def _react(self, commit: Commit, now: float) -> None:
+    def _react(self, commits: List[Commit], now: float) -> None:
         old_form = self.stats.current_form
         self.stats = self.state.get_pet_state()
         start = max([now] + [r.started + r.duration for r in self.reactions])
@@ -99,9 +147,17 @@ class Haunting:
             self.reactions.append(Reaction("evolve", text, start, EVOLUTION_SECONDS, old_form))
             return
 
-        agent = detect_agent(commit.message, commit.author.name or "", commit.author.email or "")
-        if agent:
-            text = random.choice(theme.AGENT_REACTIONS).format(name=name, agent=agent)
+        agents = [
+            detect_agent(c.message, c.author.name or "", c.author.email or "") for c in commits
+        ]
+        spirits = [a for a in agents if a]
+        if len(commits) > 1:
+            text = f"{len(commits)} commits landed at once. {name} eats them all"
+            if spirits:
+                text += f" ({len(spirits)} by agents)"
+            self.reactions.append(Reaction("agent" if spirits else "commit", text, start, 1.8))
+        elif spirits:
+            text = random.choice(theme.AGENT_REACTIONS).format(name=name, agent=spirits[0])
             self.reactions.append(Reaction("agent", text, start, 1.6))
         else:
             text = random.choice(theme.COMMIT_REACTIONS).format(name=name)
@@ -135,7 +191,7 @@ class Haunting:
             status = Text(f"  watching for commits{dots}", style=theme.DIM)
             status.append("   ctrl+c to leave", style=theme.DIM)
 
-        repo_name = self.repo.working_tree_dir.rstrip("/").split("/")[-1]
+        repo_name = Path(self.repo.working_tree_dir).name
         return Panel(
             Group(top, Text(""), self._ticker(), Text(""), status),
             title=Text(f" 👻 haunting {repo_name} ", style=f"bold {theme.ORANGE}"),
@@ -173,13 +229,14 @@ class Haunting:
         table.add_column(no_wrap=True, max_width=52, overflow="ellipsis")
         table.add_column(no_wrap=True)
 
-        events = self.state.get_recent_events(5)
+        events = self.events
         if not events:
             table.add_row("", "", Text("No commits yet. Make one and watch.", style=theme.DIM), "")
         for event in events:
             icon = "👾" if event.agent else "🎃"
             who = Text(event.agent, style=theme.CYAN) if event.agent else Text("you", style=theme.ORANGE)
-            table.add_row(icon, _ago(event.timestamp), commit_subject(event.message), who)
+            # Text() so brackets in a commit message aren't read as Rich markup
+            table.add_row(icon, _ago(event.timestamp), Text(commit_subject(event.message)), who)
         return table
 
 
@@ -200,7 +257,11 @@ def haunt(repo: Repo, state_manager: StateManager, fps: int = 12, grace: float =
         try:
             while True:
                 now = time.time()
-                haunting.poll(now)
+                try:
+                    haunting.poll(now)
+                except (GitCommandError, OperationalError):
+                    # A busy database or a git command mid-rebase; try again next poll
+                    pass
                 live.update(haunting.frame(now))
                 time.sleep(max(0.0, 1 / fps - (time.time() - now)))
         except KeyboardInterrupt:
