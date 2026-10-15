@@ -1,10 +1,11 @@
 """Main CLI interface."""
+import os
 import random
 from pathlib import Path
 from typing import Optional
 
 import typer
-from dotenv import find_dotenv, load_dotenv
+from dotenv import dotenv_values, find_dotenv
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -24,8 +25,22 @@ app = typer.Typer(
 
 def cli():
     """Entry point for console script."""
-    load_dotenv(find_dotenv(usecwd=True))
+    load_api_key()
     app()
+
+
+def load_api_key() -> None:
+    """Pick up ANTHROPIC_API_KEY from a .env file if it isn't already set.
+
+    Only that one variable is read: a repo's .env could otherwise inject
+    settings such as GIT_CONFIG_* into the git commands GitGotchi runs.
+    """
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    path = find_dotenv(usecwd=True)
+    key = dotenv_values(path).get("ANTHROPIC_API_KEY") if path else None
+    if key:
+        os.environ["ANTHROPIC_API_KEY"] = key
 
 
 def load_state() -> StateManager:
@@ -106,12 +121,20 @@ def pet():
         raise typer.Exit(1)
 
 
+MAX_NAME_LENGTH = 30
+
+
 @app.command()
 def name(new_name: str):
     """Give your companion a name."""
     try:
         state_manager = load_state()
         pet_stats = state_manager.get_pet_state()
+
+        new_name = " ".join(new_name.split())
+        if not new_name or len(new_name) > MAX_NAME_LENGTH:
+            render_error(f"Names need between 1 and {MAX_NAME_LENGTH} characters.")
+            raise typer.Exit(1)
 
         old_name = pet_stats.pet_name
         pet_stats.pet_name = new_name
@@ -245,7 +268,7 @@ def story():
 
 @app.command()
 def adopt(
-    limit: Optional[int] = typer.Option(None, help="Only replay the most recent N commits"),
+    limit: Optional[int] = typer.Option(None, min=1, help="Only replay the most recent N commits"),
     reset: bool = typer.Option(False, "--reset", help="Start the pet over before replaying"),
 ):
     """Raise your companion on this repo's existing history."""
@@ -308,7 +331,8 @@ def card(
     repo_name = Path(require_repo().working_tree_dir).name
 
     image = make_card(stats, repo_name, state_manager.agent_counts())
-    output.write_bytes(encode_png(upscale(image, max(1, min(12, scale)))))
+    scale = max(1, min(12, scale))
+    output.write_bytes(encode_png(upscale(image, scale)))
 
     protocol = graphics_protocol()
     if protocol and console.is_terminal:
