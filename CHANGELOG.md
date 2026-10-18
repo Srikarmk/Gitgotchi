@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- The project now has a website: https://srikarmk.github.io/Gitgotchi/ (linked from PyPI and the README).
+- The website's navigation fits on phones.
+
 ## 0.4.0
 
 ### New

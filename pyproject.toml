@@ -66,7 +66,7 @@ gitgotchi = "gitgotchi.cli:cli"
 gitgotchi-statusline = "gitgotchi.statusline:main"
 
 [project.urls]
-Homepage = "https://github.com/Srikarmk/Gitgotchi"
+Homepage = "https://srikarmk.github.io/Gitgotchi/"
 Repository = "https://github.com/Srikarmk/Gitgotchi"
 Issues = "https://github.com/Srikarmk/Gitgotchi/issues"
 Changelog = "https://github.com/Srikarmk/Gitgotchi/blob/main/CHANGELOG.md"

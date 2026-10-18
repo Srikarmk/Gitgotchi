@@ -4,6 +4,8 @@
 [![CI](https://github.com/Srikarmk/Gitgotchi/actions/workflows/ci.yml/badge.svg)](https://github.com/Srikarmk/Gitgotchi/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/gitgotchi)](https://pypi.org/project/gitgotchi/)
 
+**[Website](https://srikarmk.github.io/Gitgotchi/)** · **[PyPI](https://pypi.org/project/gitgotchi/)** · **[Changelog](https://github.com/Srikarmk/Gitgotchi/blob/main/CHANGELOG.md)**
+
 **Your terminal is haunted now.** These days AI agents write a lot of the commits, and GitGotchi is the
 little spirit that lives in your repo and watches them land. Feed it commits, keep it company while
 your agent works, and see what it grows into.

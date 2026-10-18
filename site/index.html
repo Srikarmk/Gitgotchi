@@ -6,6 +6,8 @@
 <title>GitGotchi</title>
 <meta name="description" content="A 3D pixel-art spirit that haunts your git repo and reacts as you, and your AI agents, commit.">
 <meta property="og:title" content="GitGotchi">
+<meta property="og:url" content="https://srikarmk.github.io/Gitgotchi/">
+<link rel="canonical" href="https://srikarmk.github.io/Gitgotchi/">
 <meta property="og:description" content="Your terminal is haunted now. A pixel-art spirit that watches every commit land, including the ones your AI agents write.">
 <meta property="og:image" content="https://raw.githubusercontent.com/Srikarmk/Gitgotchi/main/docs/card.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -308,6 +310,7 @@ footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
   body { padding-inline: 16px; }
+  .top nav .jump { display: none; }
   .top nav { gap: 14px; }
   section { padding-block: 44px; }
 }
@@ -319,9 +322,9 @@ footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
   <header class="top">
     <a class="brand" href="#">GitGotchi</a>
     <nav aria-label="Primary">
-      <a href="#forms">Forms</a>
-      <a href="#possession">Possession</a>
-      <a href="#commands">Commands</a>
+      <a class="jump" href="#forms">Forms</a>
+      <a class="jump" href="#possession">Possession</a>
+      <a class="jump" href="#commands">Commands</a>
       <a href="https://github.com/Srikarmk/Gitgotchi">GitHub</a>
       <a href="https://pypi.org/project/gitgotchi/">PyPI</a>
     </nav>
