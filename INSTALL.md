@@ -118,8 +118,8 @@ deactivate
 Bump `__version__` in `src/gitgotchi/__init__.py`, add a CHANGELOG entry, then tag:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v1.2.3      # the version you just set
+git push origin v1.2.3
 ```
 
 The Publish workflow builds the package and uploads it to PyPI.
